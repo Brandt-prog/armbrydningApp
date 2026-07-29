@@ -1,20 +1,26 @@
+import { useClubs } from '@/src/viewmodels/useClubs';
 import { AdminApprovalScreen } from '@/src/views/AdminApprovalScreen';
 import { AuthGate } from '@/src/views/AuthGate';
+import { LeaderboardScreen } from '@/src/views/LeaderboardScreen';
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
+  const { clubs } = useClubs();
+
   return (
     <AuthGate>
       {(currentUser, signOut) => (
         <View style={styles.container}>
-          <Text style={styles.title}>Velkommen, {currentUser.name}!</Text>
-          <Text>Brugernavn: {currentUser.username}</Text>
-          <Text>Status: {currentUser.status}</Text>
-          <Text>Rating: {currentUser.rating}</Text>
-          <Text>Roller: {currentUser.roles.join(', ')}</Text>
-          <Text style={styles.link} onPress={signOut}>
-            Log ud
-          </Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>Hej, {currentUser.name}</Text>
+            <Text style={styles.link} onPress={signOut}>
+              Log ud
+            </Text>
+          </View>
+
+          {currentUser.status === 'active' && (
+            <LeaderboardScreen currentUser={currentUser} clubs={clubs} />
+          )}
 
           {(currentUser.roles.includes('club_admin') || currentUser.roles.includes('super_admin')) && (
             <View style={styles.adminSection}>
@@ -28,25 +34,15 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    gap: 8,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
+  container: { flex: 1, backgroundColor: '#fff', paddingTop: 60 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
     marginBottom: 12,
-    color: '#1a1a1a',
   },
-  link: {
-    marginTop: 20,
-    color: '#1D3D47',
-    fontWeight: '600',
-  },
-  adminSection: {
-    marginTop: 24,
-    flex: 1,
-  },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#1a1a1a' },
+  link: { color: '#1D3D47', fontWeight: '600' },
+  adminSection: { padding: 16 },
 });
