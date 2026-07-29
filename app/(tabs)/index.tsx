@@ -1,98 +1,118 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { ClubRepository } from '@/src/repositories/ClubRepository';
+import { UserRepository } from '@/src/repositories/UserRepository';
+import { recordSupermatch } from '@/src/services/SupermatchService';
+import { recordTournament } from '@/src/services/TournamentService';
+import { useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  useEffect(() => {
+    async function testServices() {
+      try {
+        const club = await ClubRepository.create({
+          name: 'Armbrydning 5000',
+          location: 'Odense',
+        });
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        const playerA = await UserRepository.create({
+          name: 'Spiller A',
+          username: `spillerA-${Date.now()}`,
+          clubId: club.id,
+          roles: ['member'],
+          status: 'active',
+          rating: 1200,
+          weight: 80,
+          height: 180,
+          birthDate: '1995-05-15',
+          gender: 'male',
+          consentDate: new Date().toISOString(),
+        });
+
+        const playerB = await UserRepository.create({
+          name: 'Spiller B',
+          username: `spillerB-${Date.now()}`,
+          clubId: club.id,
+          roles: ['member'],
+          status: 'active',
+          rating: 1200,
+          weight: 85,
+          height: 182,
+          birthDate: '1993-03-10',
+          gender: 'male',
+          consentDate: new Date().toISOString(),
+        });
+
+        const playerC = await UserRepository.create({
+          name: 'Spiller C',
+          username: `spillerC-${Date.now()}`,
+          clubId: club.id,
+          roles: ['member'],
+          status: 'active',
+          rating: 1100,
+          weight: 75,
+          height: 175,
+          birthDate: '1998-07-20',
+          gender: 'male',
+          consentDate: new Date().toISOString(),
+        });
+
+        console.log('Spillere oprettet:', playerA.name, playerA.rating, '|', playerB.name, playerB.rating, '|', playerC.name, playerC.rating);
+
+        const tournament = await recordTournament(
+          'Odense Open',
+          new Date().toISOString(),
+          club.id,
+          playerA.id,
+          [
+            { userId: playerA.id, placement: 1 },
+            { userId: playerB.id, placement: 2 },
+            { userId: playerC.id, placement: 3 },
+          ]
+        );
+        console.log('Turnering registreret:', tournament.name);
+
+        const updatedA = await UserRepository.getById(playerA.id);
+        const updatedB = await UserRepository.getById(playerB.id);
+        const updatedC = await UserRepository.getById(playerC.id);
+        console.log(
+          'Ratings efter turnering:',
+          updatedA?.name, updatedA?.rating, '|',
+          updatedB?.name, updatedB?.rating, '|',
+          updatedC?.name, updatedC?.rating
+        );
+
+        const supermatch = await recordSupermatch(
+          playerA.id,
+          playerB.id,
+          new Date().toISOString(),
+          'best_of_7',
+          club.id,
+          playerA.id,
+          ['A', 'B', 'A', 'A', 'B', 'A']
+        );
+        console.log('Supermatch registreret:', supermatch.id);
+
+        const finalA = await UserRepository.getById(playerA.id);
+        const finalB = await UserRepository.getById(playerB.id);
+        console.log('Ratings efter supermatch:', finalA?.name, finalA?.rating, '|', finalB?.name, finalB?.rating);
+      } catch (error) {
+        console.error('Fejl ved test af services:', error);
+      }
+    }
+    testServices();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <Text>Test kører — tjek terminalen</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
   },
 });

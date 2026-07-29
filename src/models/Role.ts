@@ -1,0 +1,1 @@
+export type Role = 'member' | 'club_admin' | 'super_admin'

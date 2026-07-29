@@ -1,0 +1,1 @@
+export type UserStatus = 'pending_approval' | 'active' | 'deactivated'

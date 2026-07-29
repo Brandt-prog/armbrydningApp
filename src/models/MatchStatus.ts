@@ -1,0 +1,1 @@
+export type MatchStatus = 'active' | 'voided'
