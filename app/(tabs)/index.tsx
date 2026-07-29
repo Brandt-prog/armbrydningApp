@@ -1,3 +1,4 @@
+import { colors, fonts, spacing } from '@/src/theme/theme';
 import { useClubs } from '@/src/viewmodels/useClubs';
 import { AdminApprovalScreen } from '@/src/views/AdminApprovalScreen';
 import { AuthGate } from '@/src/views/AuthGate';
@@ -12,7 +13,10 @@ export default function HomeScreen() {
       {(currentUser, signOut) => (
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>Hej, {currentUser.name}</Text>
+            <View>
+              <Text style={styles.eyebrow}>ARMBRYDNING DANMARK</Text>
+              <Text style={styles.title}>{currentUser.name}</Text>
+            </View>
             <Text style={styles.link} onPress={signOut}>
               Log ud
             </Text>
@@ -34,15 +38,27 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 60 },
+  container: { flex: 1, backgroundColor: colors.primary, paddingTop: 60 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    alignItems: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
   },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#1a1a1a' },
-  link: { color: '#1D3D47', fontWeight: '600' },
-  adminSection: { padding: 16 },
+  eyebrow: {
+    color: '#fff',
+    opacity: 0.75,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    fontFamily: fonts.displayMedium,
+  },
+  title: {
+    fontSize: 26,
+    color: '#fff',
+    fontFamily: fonts.display,
+    marginTop: 4,
+  },
+  link: { color: '#fff', fontWeight: '600', paddingBottom: 4 },
+  adminSection: { padding: spacing.md, backgroundColor: colors.background },
 });

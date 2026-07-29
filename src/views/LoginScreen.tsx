@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { colors, fonts, radius, spacing } from '../theme/theme'
 
 interface LoginScreenProps {
   onSignUp: (username: string, password: string) => Promise<void>
@@ -30,31 +31,32 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.eyebrow}>ARMBRYDNING DANMARK</Text>
       <Text style={styles.title}>{mode === 'signin' ? 'Log ind' : 'Opret konto'}</Text>
 
-      <Text style={styles.label}>Brugernavn</Text>
+      <Text style={styles.label}>BRUGERNAVN</Text>
       <TextInput
         style={styles.input}
         value={username}
         onChangeText={setUsername}
         autoCapitalize="none"
         autoCorrect={false}
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.inkMuted}
       />
 
-      <Text style={styles.label}>Kodeord</Text>
+      <Text style={styles.label}>KODEORD</Text>
       <TextInput
         style={styles.input}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         autoCapitalize="none"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.inkMuted}
       />
 
       <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting}>
         <Text style={styles.buttonText}>
-          {submitting ? 'Vent...' : mode === 'signin' ? 'Log ind' : 'Opret konto'}
+          {submitting ? 'VENT...' : mode === 'signin' ? 'LOG IND' : 'OPRET KONTO'}
         </Text>
       </Pressable>
 
@@ -70,26 +72,47 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 24, textAlign: 'center', color: '#1a1a1a' },
-  label: { fontSize: 14, marginBottom: 4, marginTop: 12, color: '#1a1a1a' },
+  container: { flex: 1, justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.background },
+  eyebrow: {
+    color: colors.primary,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    fontFamily: fonts.displayMedium,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  title: {
+    fontSize: 28,
+    fontFamily: fonts.display,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+    color: colors.ink,
+  },
+  label: {
+    fontSize: 11,
+    letterSpacing: 1,
+    marginBottom: spacing.xs,
+    marginTop: spacing.md,
+    color: colors.inkMuted,
+    fontFamily: fonts.displayMedium,
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: 14,
     fontSize: 16,
-    color: '#1a1a1a',
-    backgroundColor: '#fff',
+    color: colors.ink,
+    backgroundColor: colors.surface,
   },
   button: {
-    backgroundColor: '#1D3D47',
-    borderRadius: 8,
-    padding: 14,
-    marginTop: 24,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    padding: 16,
+    marginTop: spacing.lg,
     alignItems: 'center',
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  switchText: { textAlign: 'center', marginTop: 16, color: '#1D3D47' },
-  error: { color: 'red', marginTop: 16, textAlign: 'center' },
+  buttonText: { color: '#fff', fontSize: 15, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
+  switchText: { textAlign: 'center', marginTop: spacing.md, color: colors.primary },
+  error: { color: colors.danger, marginTop: spacing.md, textAlign: 'center' },
 })
