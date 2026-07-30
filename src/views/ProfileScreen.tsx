@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import type { Club } from '../models/Club'
 import type { User } from '../models/User'
+import { classifyAthlete } from '../services/WeightClassService'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 import { usePlayerHistory } from '../viewmodels/usePlayerHistory'
 
@@ -14,6 +15,11 @@ export function ProfileScreen({ currentUser, clubs, onSignOut }: ProfileScreenPr
   const { tournaments, supermatches, loading, error } = usePlayerHistory(currentUser.id)
   const clubName = clubs.find((c) => c.id === currentUser.clubId)?.name ?? 'Ukendt klub'
 
+  const classification =
+    currentUser.birthDate && currentUser.gender && currentUser.weight
+      ? classifyAthlete(currentUser.birthDate, currentUser.gender, currentUser.weight)
+      : null
+
   function formatDate(iso: string) {
     if (!iso) return ''
     return new Date(iso).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -24,6 +30,15 @@ export function ProfileScreen({ currentUser, clubs, onSignOut }: ProfileScreenPr
       <View style={styles.header}>
         <Text style={styles.eyebrow}>{clubName.toUpperCase()}</Text>
         <Text style={styles.name}>{currentUser.name}</Text>
+
+        {classification && (
+          <View style={styles.classBadge}>
+            <Text style={styles.classBadgeText}>
+              {classification.ageCategory} · {classification.weightClass}
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.rating}>{currentUser.rating}</Text>
         <Text style={styles.ratingLabel}>RATING</Text>
       </View>
@@ -104,6 +119,14 @@ const styles = StyleSheet.create({
   header: { paddingTop: 60, paddingBottom: spacing.xl, paddingHorizontal: spacing.md, alignItems: 'center' },
   eyebrow: { color: '#fff', opacity: 0.75, fontSize: 11, letterSpacing: 1.5, fontFamily: fonts.displayMedium },
   name: { fontSize: 24, color: '#fff', fontFamily: fonts.display, marginTop: 4 },
+  classBadge: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    marginTop: spacing.xs,
+  },
+  classBadgeText: { color: '#fff', fontSize: 11, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
   rating: { fontSize: 48, color: '#fff', fontFamily: fonts.display, marginTop: spacing.sm },
   ratingLabel: { color: '#fff', opacity: 0.75, fontSize: 11, letterSpacing: 1.5, fontFamily: fonts.displayMedium },
   body: { backgroundColor: colors.background, padding: spacing.md, minHeight: 400 },

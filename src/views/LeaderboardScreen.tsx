@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { Club } from '../models/Club'
 import type { User } from '../models/User'
+import { classifyAthlete } from '../services/WeightClassService'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 import { useLeaderboard } from '../viewmodels/useLeaderboard'
 
@@ -18,6 +19,19 @@ function RankBadge({ rank }: { rank: number }) {
     <View style={[styles.rankBadge, medalColor ? { backgroundColor: medalColor } : styles.rankBadgeDefault]}>
       <Text style={[styles.rankBadgeText, medalColor ? { color: '#fff' } : { color: colors.inkMuted }]}>
         {rank}
+      </Text>
+    </View>
+  )
+}
+
+function ClassBadge({ user }: { user: User }) {
+  if (!user.birthDate || !user.gender || !user.weight) return null
+  const { ageCategory, weightClass } = classifyAthlete(user.birthDate, user.gender, user.weight)
+
+  return (
+    <View style={styles.classBadge}>
+      <Text style={styles.classBadgeText}>
+        {ageCategory} · {weightClass}
       </Text>
     </View>
   )
@@ -68,11 +82,14 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
               <RankBadge rank={index + 1} />
               <View style={styles.rowInfo}>
                 <Text style={styles.name}>{item.name}</Text>
-                {view === 'national' && (
-                  <Text style={styles.club}>
-                    {clubs.find((c) => c.id === item.clubId)?.name ?? 'Ukendt klub'}
-                  </Text>
-                )}
+                <View style={styles.metaRow}>
+                  {view === 'national' && (
+                    <Text style={styles.club}>
+                      {clubs.find((c) => c.id === item.clubId)?.name ?? 'Ukendt klub'}
+                    </Text>
+                  )}
+                  <ClassBadge user={item} />
+                </View>
               </View>
               <Text style={styles.rating}>{item.rating}</Text>
             </View>
@@ -127,6 +144,16 @@ const styles = StyleSheet.create({
   rankBadgeText: { fontFamily: fonts.display, fontSize: 14 },
   rowInfo: { flex: 1 },
   name: { fontSize: 16, fontWeight: '600', color: colors.ink },
-  club: { fontSize: 12, color: colors.inkMuted, marginTop: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' },
+  club: { fontSize: 12, color: colors.inkMuted },
+  classBadge: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  classBadgeText: { fontSize: 10, color: colors.inkMuted, fontFamily: fonts.displayMedium },
   rating: { fontSize: 20, fontFamily: fonts.display, color: colors.primary },
 })
