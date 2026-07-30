@@ -22,6 +22,11 @@ export interface SupermatchResult {
   games: GameRatingSnapshot[]
 }
 
+// Bonus for winning the overall series, applied once at the end —
+// matches the 1st-place tournament bonus, since a supermatch is
+// effectively a 2-person tournament.
+const SERIES_WIN_BONUS = 15
+
 export function calculateSupermatchRatings(
   playerA: SupermatchParticipant,
   playerB: SupermatchParticipant,
@@ -55,6 +60,17 @@ export function calculateSupermatchRatings(
       ratingBAfter: ratingB,
     }
   })
+
+  // Apply a bonus to whoever won more individual games overall.
+  const aWins = gameWinners.filter((w) => w === 'A').length
+  const bWins = gameWinners.filter((w) => w === 'B').length
+
+  if (aWins > bWins) {
+    ratingA += SERIES_WIN_BONUS
+  } else if (bWins > aWins) {
+    ratingB += SERIES_WIN_BONUS
+  }
+  // A tied series (equal wins) gets no bonus — no clear winner.
 
   return { finalRatingA: ratingA, finalRatingB: ratingB, games }
 }

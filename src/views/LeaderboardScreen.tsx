@@ -61,6 +61,7 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
         <FlatList
           data={members}
           keyExtractor={(item) => item.id}
+          scrollEnabled={false}
           contentContainerStyle={{ paddingBottom: spacing.xl }}
           renderItem={({ item, index }) => (
             <View style={styles.row}>

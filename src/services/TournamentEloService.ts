@@ -13,6 +13,15 @@ export interface RatingChange {
   ratingAfter: number
 }
 
+// Extra flat bonus for podium finishes, added on top of the pairwise
+// Elo comparisons. Rewards standing on the podium specifically, not
+// just "beating more people than you lost to".
+const PODIUM_BONUS: Record<number, number> = {
+  1: 15,
+  2: 10,
+  3: 5,
+}
+
 export function calculateTournamentRatingChanges(
   participants: ParticipantResult[]
 ): RatingChange[] {
@@ -37,6 +46,14 @@ export function calculateTournamentRatingChanges(
 
       changes.set(a.userId, (changes.get(a.userId) ?? 0) + (kA * (scoreA - expectedA)) / divisor)
       changes.set(b.userId, (changes.get(b.userId) ?? 0) + (kB * (scoreB - expectedB)) / divisor)
+    }
+  }
+
+  // Apply podium bonus on top, for 1st/2nd/3rd place specifically
+  for (const p of participants) {
+    const bonus = PODIUM_BONUS[p.placement] ?? 0
+    if (bonus > 0) {
+      changes.set(p.userId, (changes.get(p.userId) ?? 0) + bonus)
     }
   }
 
