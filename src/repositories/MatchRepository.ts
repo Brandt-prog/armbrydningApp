@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import type { Arm } from '../models/Arm'
 import type { Match } from '../models/Match'
 import type { MatchStatus } from '../models/MatchStatus'
 
@@ -10,6 +11,7 @@ interface MatchRow {
   player_b_id: string
   winner_id: string
   date: string
+  arm: Arm
   recorded_by: string
   status: MatchStatus
   rating_a_before: number
@@ -25,6 +27,7 @@ function toDomain(row: MatchRow): Match {
     playerBId: row.player_b_id,
     winnerId: row.winner_id,
     date: row.date,
+    arm: row.arm,
     recordedBy: row.recorded_by,
     status: row.status,
     ratingABefore: row.rating_a_before,
@@ -41,6 +44,7 @@ function toRow(m: Partial<Match>): Partial<MatchRow> {
   if (m.playerBId !== undefined) row.player_b_id = m.playerBId
   if (m.winnerId !== undefined) row.winner_id = m.winnerId
   if (m.date !== undefined) row.date = m.date
+  if (m.arm !== undefined) row.arm = m.arm
   if (m.recordedBy !== undefined) row.recorded_by = m.recordedBy
   if (m.status !== undefined) row.status = m.status
   if (m.ratingABefore !== undefined) row.rating_a_before = m.ratingABefore

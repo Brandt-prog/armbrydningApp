@@ -10,7 +10,14 @@ export interface User {
   roles: Role[]
   status: UserStatus
 
-  rating: number | null
+  ratingLeft: number
+  ratingLeftRD: number
+  ratingLeftVolatility: number
+
+  ratingRight: number
+  ratingRightRD: number
+  ratingRightVolatility: number
+
   weight: number | null
   height: number | null
   birthDate: string | null

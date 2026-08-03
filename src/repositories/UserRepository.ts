@@ -13,7 +13,12 @@ interface UserRow {
   club_id: string | null
   roles: Role[]
   status: UserStatus
-  rating: number | null
+  rating_left: number
+  rating_left_rd: number
+  rating_left_volatility: number
+  rating_right: number
+  rating_right_rd: number
+  rating_right_volatility: number
   weight: number | null
   height: number | null
   birth_date: string | null
@@ -30,7 +35,12 @@ export function mapUserRow(row: UserRow): User {
     clubId: row.club_id,
     roles: row.roles,
     status: row.status,
-    rating: row.rating,
+    ratingLeft: row.rating_left,
+    ratingLeftRD: row.rating_left_rd,
+    ratingLeftVolatility: row.rating_left_volatility,
+    ratingRight: row.rating_right,
+    ratingRightRD: row.rating_right_rd,
+    ratingRightVolatility: row.rating_right_volatility,
     weight: row.weight,
     height: row.height,
     birthDate: row.birth_date,
@@ -48,7 +58,12 @@ function toRow(user: Partial<User>): Partial<UserRow> {
   if (user.clubId !== undefined) row.club_id = user.clubId
   if (user.roles !== undefined) row.roles = user.roles
   if (user.status !== undefined) row.status = user.status
-  if (user.rating !== undefined) row.rating = user.rating
+  if (user.ratingLeft !== undefined) row.rating_left = user.ratingLeft
+  if (user.ratingLeftRD !== undefined) row.rating_left_rd = user.ratingLeftRD
+  if (user.ratingLeftVolatility !== undefined) row.rating_left_volatility = user.ratingLeftVolatility
+  if (user.ratingRight !== undefined) row.rating_right = user.ratingRight
+  if (user.ratingRightRD !== undefined) row.rating_right_rd = user.ratingRightRD
+  if (user.ratingRightVolatility !== undefined) row.rating_right_volatility = user.ratingRightVolatility
   if (user.weight !== undefined) row.weight = user.weight
   if (user.height !== undefined) row.height = user.height
   if (user.birthDate !== undefined) row.birth_date = user.birthDate

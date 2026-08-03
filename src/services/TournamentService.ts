@@ -1,79 +1,101 @@
+import type { Arm } from '../models/Arm'
 import type { Tournament } from '../models/Tournament'
-import { SupermatchRepository } from '../repositories/SupermatchRepository'
+import type { TournamentMatch } from '../models/TournamentMatch'
+import type { User } from '../models/User'
+import { TournamentMatchRepository } from '../repositories/TournamentMatchRepository'
 import { TournamentRepository } from '../repositories/TournamentRepository'
 import { UserRepository } from '../repositories/UserRepository'
-import { STARTING_RATING } from './EloMath'
-import { calculateTournamentRatingChanges } from './TournamentEloService'
+import type { GlickoRating } from './GlickoMath'
+import { updateGlickoAfterGame } from './GlickoMath'
 
 export class TournamentServiceError extends Error {}
 
-interface PlacementInput {
-  userId: string
-  placement: number
+function getGlicko(user: User, arm: Arm): GlickoRating {
+  return arm === 'left'
+    ? { rating: user.ratingLeft, rd: user.ratingLeftRD, volatility: user.ratingLeftVolatility }
+    : { rating: user.ratingRight, rd: user.ratingRightRD, volatility: user.ratingRightVolatility }
 }
 
-async function countEventsPlayed(userId: string): Promise<number> {
-  const [tournamentResults, supermatches] = await Promise.all([
-    TournamentRepository.getResultsByUserId(userId),
-    SupermatchRepository.getByPlayerId(userId),
-  ])
-  return tournamentResults.length + supermatches.length
-}
-
-export async function recordTournament(
+export async function createTournament(
   name: string,
   date: string,
+  arm: Arm,
   organizingClubId: string | null,
-  recordedBy: string,
-  placements: PlacementInput[]
+  recordedBy: string
 ): Promise<Tournament> {
-  if (placements.length < 2) {
-    throw new TournamentServiceError('A tournament needs at least 2 participants.')
+  return TournamentRepository.create({ name, date, arm, organizingClubId, recordedBy })
+}
+
+/**
+ * Records a single real match within a tournament (any round or bracket).
+ * Rating updates immediately using Glicko-2, treating this game as its
+ * own one-opponent rating period.
+ */
+export async function recordTournamentMatch(
+  tournamentId: string,
+  playerAId: string,
+  playerBId: string,
+  winnerId: string
+): Promise<TournamentMatch> {
+  if (playerAId === playerBId) {
+    throw new TournamentServiceError('A player cannot play against themselves.')
+  }
+  if (winnerId !== playerAId && winnerId !== playerBId) {
+    throw new TournamentServiceError('The winner must be one of the two players.')
   }
 
-  const uniquePlacements = new Set(placements.map((p) => p.placement))
-  if (uniquePlacements.size !== placements.length) {
-    throw new TournamentServiceError('Each participant must have a unique placement.')
+  const tournament = await TournamentRepository.getById(tournamentId)
+  if (!tournament) {
+    throw new TournamentServiceError('Tournament not found.')
+  }
+  const arm = tournament.arm
+
+  const [playerA, playerB] = await Promise.all([
+    UserRepository.getById(playerAId),
+    UserRepository.getById(playerBId),
+  ])
+  if (!playerA || !playerB) {
+    throw new TournamentServiceError('One or both players could not be found.')
   }
 
-  const tournament = await TournamentRepository.create({
-    name,
-    date,
-    organizingClubId,
-    recordedBy,
+  const ratingA = getGlicko(playerA, arm)
+  const ratingB = getGlicko(playerB, arm)
+
+  const scoreA: 0 | 1 = winnerId === playerAId ? 1 : 0
+  const scoreB: 0 | 1 = winnerId === playerBId ? 1 : 0
+
+  const newA = updateGlickoAfterGame(ratingA, ratingB, scoreA)
+  const newB = updateGlickoAfterGame(ratingB, ratingA, scoreB)
+
+  const existingMatches = await TournamentMatchRepository.getByTournamentId(tournamentId)
+  const sequenceNumber = existingMatches.length + 1
+
+  const match = await TournamentMatchRepository.create({
+    tournamentId,
+    arm,
+    playerAId,
+    playerBId,
+    winnerId,
+    sequenceNumber,
+    ratingABefore: ratingA.rating,
+    ratingBBefore: ratingB.rating,
+    ratingAAfter: newA.rating,
+    ratingBAfter: newB.rating,
   })
 
-  const participants = await Promise.all(
-    placements.map(async (p) => {
-      const user = await UserRepository.getById(p.userId)
-      if (!user) {
-        throw new TournamentServiceError(`User ${p.userId} not found.`)
-      }
-      const eventsPlayed = await countEventsPlayed(p.userId)
-      return {
-        userId: p.userId,
-        rating: user.rating ?? STARTING_RATING,
-        tournamentsPlayed: eventsPlayed,
-        placement: p.placement,
-      }
-    })
-  )
+  const fieldsA =
+    arm === 'left'
+      ? { ratingLeft: newA.rating, ratingLeftRD: newA.rd, ratingLeftVolatility: newA.volatility }
+      : { ratingRight: newA.rating, ratingRightRD: newA.rd, ratingRightVolatility: newA.volatility }
+  const fieldsB =
+    arm === 'left'
+      ? { ratingLeft: newB.rating, ratingLeftRD: newB.rd, ratingLeftVolatility: newB.volatility }
+      : { ratingRight: newB.rating, ratingRightRD: newB.rd, ratingRightVolatility: newB.volatility }
 
-  const changes = calculateTournamentRatingChanges(participants)
+  await Promise.all([
+    UserRepository.update(playerAId, fieldsA),
+    UserRepository.update(playerBId, fieldsB),
+  ])
 
-  await Promise.all(
-    changes.map(async (change) => {
-      const placement = placements.find((p) => p.userId === change.userId)!.placement
-      await TournamentRepository.createResult({
-        tournamentId: tournament.id,
-        userId: change.userId,
-        placement,
-        ratingBefore: change.ratingBefore,
-        ratingAfter: change.ratingAfter,
-      })
-      await UserRepository.update(change.userId, { rating: change.ratingAfter })
-    })
-  )
-
-  return tournament
+  return match
 }

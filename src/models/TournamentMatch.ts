@@ -1,16 +1,13 @@
 import type { Arm } from './Arm'
-import type { MatchStatus } from './MatchStatus'
 
-export interface Match {
+export interface TournamentMatch {
   id: string
+  tournamentId: string
+  arm: Arm
   playerAId: string
   playerBId: string
   winnerId: string
-  date: string
-  arm: Arm
-  recordedBy: string
-  status: MatchStatus
-
+  sequenceNumber: number
   ratingABefore: number
   ratingBBefore: number
   ratingAAfter: number

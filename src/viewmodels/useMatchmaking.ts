@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import type { Arm } from '../models/Arm'
 import type { User } from '../models/User'
 import { UserRepository } from '../repositories/UserRepository'
 
-export function useMatchmaking(currentUser: User) {
+export function useMatchmaking(currentUser: User, arm: Arm) {
   const [allMembers, setAllMembers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [ratingRange, setRatingRange] = useState(100)
@@ -34,17 +35,21 @@ export function useMatchmaking(currentUser: User) {
   }, [load])
 
   const candidates = useMemo(() => {
-    const myRating = currentUser.rating ?? 1200
+    const ratingField = arm === 'left' ? 'ratingLeft' : 'ratingRight'
+    const myRating = currentUser[ratingField] ?? 1200
 
     return allMembers
-      .filter((u) => Math.abs((u.rating ?? 1200) - myRating) <= ratingRange)
+      .filter((u) => Math.abs((u[ratingField] ?? 1200) - myRating) <= ratingRange)
       .filter((u) => {
         if (!sameWeightClassOnly) return true
         if (!currentUser.weight || !u.weight) return false
         return Math.abs(u.weight - currentUser.weight) <= 5
       })
-      .sort((a, b) => Math.abs((a.rating ?? 1200) - myRating) - Math.abs((b.rating ?? 1200) - myRating))
-  }, [allMembers, currentUser.rating, currentUser.weight, ratingRange, sameWeightClassOnly])
+      .sort(
+        (a, b) =>
+          Math.abs((a[ratingField] ?? 1200) - myRating) - Math.abs((b[ratingField] ?? 1200) - myRating)
+      )
+  }, [allMembers, currentUser, arm, ratingRange, sameWeightClassOnly])
 
   return { candidates, loading, ratingRange, setRatingRange, sameWeightClassOnly, setSameWeightClassOnly }
 }

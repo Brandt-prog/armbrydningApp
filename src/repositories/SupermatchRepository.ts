@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import type { Arm } from '../models/Arm'
 import type { Supermatch } from '../models/Supermatch'
 import type { GameWinner, SupermatchGame } from '../models/SupermatchGame'
 
@@ -10,6 +11,7 @@ interface SupermatchRow {
   player_a_id: string
   player_b_id: string
   date: string
+  arm: Arm
   format: string
   organizing_club_id: string | null
   recorded_by: string
@@ -34,6 +36,7 @@ function toDomainSupermatch(row: SupermatchRow): Supermatch {
     playerAId: row.player_a_id,
     playerBId: row.player_b_id,
     date: row.date,
+    arm: row.arm,
     format: row.format,
     organizingClubId: row.organizing_club_id,
     recordedBy: row.recorded_by,
@@ -48,6 +51,7 @@ function toRowSupermatch(s: Partial<Supermatch>): Partial<SupermatchRow> {
   if (s.playerAId !== undefined) row.player_a_id = s.playerAId
   if (s.playerBId !== undefined) row.player_b_id = s.playerBId
   if (s.date !== undefined) row.date = s.date
+  if (s.arm !== undefined) row.arm = s.arm
   if (s.format !== undefined) row.format = s.format
   if (s.organizingClubId !== undefined) row.organizing_club_id = s.organizingClubId
   if (s.recordedBy !== undefined) row.recorded_by = s.recordedBy
@@ -116,6 +120,12 @@ export const SupermatchRepository = {
       .from(SUPERMATCH_TABLE)
       .select('*')
       .or(`player_a_id.eq.${playerId},player_b_id.eq.${playerId}`)
+    if (error) throw error
+    return (data as SupermatchRow[]).map(toDomainSupermatch)
+  },
+
+  async getAllByArm(arm: Arm): Promise<Supermatch[]> {
+    const { data, error } = await supabase.from(SUPERMATCH_TABLE).select('*').eq('arm', arm)
     if (error) throw error
     return (data as SupermatchRow[]).map(toDomainSupermatch)
   },

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { User } from '../models/User'
 import { UserRepository } from '../repositories/UserRepository'
 import { AuthService } from '../services/AuthService'
+import { DEFAULT_RATING, DEFAULT_RD, DEFAULT_VOLATILITY } from '../services/GlickoMath'
 
 export type AuthStatus = 'loading' | 'signed_out' | 'needs_profile' | 'signed_in'
 
@@ -89,7 +90,12 @@ export function useAuth() {
           clubId: profile.clubId,
           roles: ['member'],
           status: 'pending_approval',
-          rating: 1200,
+          ratingLeft: DEFAULT_RATING,
+          ratingLeftRD: DEFAULT_RD,
+          ratingLeftVolatility: DEFAULT_VOLATILITY,
+          ratingRight: DEFAULT_RATING,
+          ratingRightRD: DEFAULT_RD,
+          ratingRightVolatility: DEFAULT_VOLATILITY,
           weight: profile.weight,
           height: profile.height,
           birthDate: profile.birthDate,

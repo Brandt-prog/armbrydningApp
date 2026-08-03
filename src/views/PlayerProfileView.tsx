@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import type { Club } from '../models/Club'
@@ -6,20 +7,22 @@ import { classifyAthlete } from '../services/WeightClassService'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 import { usePlayerHistory } from '../viewmodels/usePlayerHistory'
 
-interface ProfileScreenProps {
-  currentUser: User
+interface PlayerProfileViewProps {
+  user: User
   clubs: Club[]
-  onSignOut: () => Promise<void>
+  isOwnProfile?: boolean
+  onSignOut?: () => Promise<void>
 }
 
-export function ProfileScreen({ currentUser, clubs, onSignOut }: ProfileScreenProps) {
-  const { tournaments, supermatches, loading, error } = usePlayerHistory(currentUser.id)
-  const clubName = clubs.find((c) => c.id === currentUser.clubId)?.name ?? 'Ukendt klub'
+export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut }: PlayerProfileViewProps) {
+  const router = useRouter()
+  const { tournaments, supermatches, loading, error } = usePlayerHistory(user.id)
+  const clubName = clubs.find((c) => c.id === user.clubId)?.name ?? 'Ukendt klub'
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const classification =
-    currentUser.birthDate && currentUser.gender && currentUser.weight
-      ? classifyAthlete(currentUser.birthDate, currentUser.gender, currentUser.weight)
+    user.birthDate && user.gender && user.weight
+      ? classifyAthlete(user.birthDate, user.gender, user.weight)
       : null
 
   function formatDate(iso: string) {
@@ -36,11 +39,16 @@ export function ProfileScreen({ currentUser, clubs, onSignOut }: ProfileScreenPr
     })
   }
 
+  function goToOpponent(opponentId: string) {
+    if (opponentId === user.id) return
+    router.push({ pathname: '/player/[id]', params: { id: opponentId } })
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>{clubName.toUpperCase()}</Text>
-        <Text style={styles.name}>{currentUser.name}</Text>
+        <Text style={styles.name}>{user.name}</Text>
 
         {classification && (
           <View style={styles.classBadge}>
@@ -52,21 +60,25 @@ export function ProfileScreen({ currentUser, clubs, onSignOut }: ProfileScreenPr
 
         <View style={styles.ratingsRow}>
           <View style={styles.ratingBlock}>
-            <Text style={styles.rating}>{currentUser.ratingRight}</Text>
+            <Text style={styles.rating}>{user.ratingRight}</Text>
+            <Text style={styles.rd}>±{user.ratingRightRD}</Text>
             <Text style={styles.ratingLabel}>HØJRE</Text>
           </View>
           <View style={styles.ratingDivider} />
           <View style={styles.ratingBlock}>
-            <Text style={styles.rating}>{currentUser.ratingLeft}</Text>
+            <Text style={styles.rating}>{user.ratingLeft}</Text>
+            <Text style={styles.rd}>±{user.ratingLeftRD}</Text>
             <Text style={styles.ratingLabel}>VENSTRE</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.signOut} onPress={onSignOut}>
-          Log ud
-        </Text>
+        {isOwnProfile && onSignOut && (
+          <Text style={styles.signOut} onPress={onSignOut}>
+            Log ud
+          </Text>
+        )}
 
         {loading ? (
           <Text style={styles.info}>Indlæser historik...</Text>
@@ -114,7 +126,11 @@ export function ProfileScreen({ currentUser, clubs, onSignOut }: ProfileScreenPr
                         {isExpanded && (
                           <View style={styles.opponentsWrap}>
                             {t.matches.map((m, i) => (
-                              <View key={`${m.opponentId}-${i}`} style={styles.opponentRow}>
+                              <Pressable
+                                key={`${m.opponentId}-${i}`}
+                                style={styles.opponentRow}
+                                onPress={() => goToOpponent(m.opponentId)}
+                              >
                                 <Text
                                   style={[
                                     styles.opponentResult,
@@ -133,7 +149,7 @@ export function ProfileScreen({ currentUser, clubs, onSignOut }: ProfileScreenPr
                                   {m.ratingAfter >= m.ratingBefore ? '+' : ''}
                                   {m.ratingAfter - m.ratingBefore}
                                 </Text>
-                              </View>
+                              </Pressable>
                             ))}
                           </View>
                         )}
@@ -195,7 +211,8 @@ const styles = StyleSheet.create({
   ratingBlock: { alignItems: 'center', paddingHorizontal: spacing.lg },
   ratingDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.3)' },
   rating: { fontSize: 40, color: '#fff', fontFamily: fonts.display },
-  ratingLabel: { color: '#fff', opacity: 0.75, fontSize: 11, letterSpacing: 1.5, fontFamily: fonts.displayMedium },
+  rd: { fontSize: 12, color: '#fff', opacity: 0.75, fontFamily: fonts.displayMedium },
+  ratingLabel: { color: '#fff', opacity: 0.75, fontSize: 11, letterSpacing: 1.5, fontFamily: fonts.displayMedium, marginTop: 2 },
   body: { backgroundColor: colors.background, padding: spacing.md, minHeight: 400 },
   signOut: { color: colors.primary, fontWeight: '600', marginBottom: spacing.md },
   info: { color: colors.inkMuted, marginBottom: spacing.md },
@@ -234,8 +251,8 @@ const styles = StyleSheet.create({
   summaryText: { fontSize: 12, color: colors.inkMuted },
   summaryToggle: { fontSize: 10, color: colors.primary, fontFamily: fonts.displayMedium },
   opponentsWrap: { marginTop: spacing.sm, gap: 4 },
-  opponentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  opponentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: 2 },
   opponentResult: { fontSize: 10, fontFamily: fonts.displayMedium, width: 52 },
-  opponentName: { fontSize: 12, color: colors.ink, flex: 1 },
+  opponentName: { fontSize: 12, color: colors.primary, flex: 1, textDecorationLine: 'underline' },
   opponentChange: { fontSize: 11, fontFamily: fonts.display },
 })

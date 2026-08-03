@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import type { Arm } from '../models/Arm'
 import type { User } from '../models/User'
 import { UserRepository } from '../repositories/UserRepository'
 
-export function useLeaderboard(clubId: string | null) {
+export function useLeaderboard(clubId: string | null, arm: Arm) {
   const [members, setMembers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -12,17 +13,18 @@ export function useLeaderboard(clubId: string | null) {
     setError(null)
     try {
       const allUsers = await UserRepository.getAll()
+      const ratingField = arm === 'left' ? 'ratingLeft' : 'ratingRight'
       const filtered = allUsers
         .filter((u) => u.status === 'active')
         .filter((u) => (clubId ? u.clubId === clubId : true))
-        .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+        .sort((a, b) => (b[ratingField] ?? 0) - (a[ratingField] ?? 0))
       setMembers(filtered)
     } catch (err) {
       setError((err as Error).message)
     } finally {
       setLoading(false)
     }
-  }, [clubId])
+  }, [clubId, arm])
 
   useEffect(() => {
     loadMembers()

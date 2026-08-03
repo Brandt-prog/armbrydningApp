@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
+import type { Arm } from '../models/Arm'
 import type { Club } from '../models/Club'
 import type { User } from '../models/User'
 import { classifyAthlete } from '../services/WeightClassService'
@@ -13,14 +15,33 @@ interface MatchmakingScreenProps {
 const RANGE_OPTIONS = [50, 100, 200]
 
 export function MatchmakingScreen({ currentUser, clubs }: MatchmakingScreenProps) {
+  const [arm, setArm] = useState<Arm>('right')
   const { candidates, loading, ratingRange, setRatingRange, sameWeightClassOnly, setSameWeightClassOnly } =
-    useMatchmaking(currentUser)
+    useMatchmaking(currentUser, arm)
+
+  const ratingField = arm === 'left' ? 'ratingLeft' : 'ratingRight'
+  const myRating = currentUser[ratingField]
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>FIND EN MODSTANDER</Text>
-        <Text style={styles.title}>Din rating: {currentUser.rating}</Text>
+        <Text style={styles.title}>Din rating: {myRating}</Text>
+      </View>
+
+      <View style={styles.armTabs}>
+        <Pressable
+          style={[styles.armTab, arm === 'right' && styles.armTabActive]}
+          onPress={() => setArm('right')}
+        >
+          <Text style={[styles.armTabText, arm === 'right' && styles.armTabTextActive]}>HØJRE</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.armTab, arm === 'left' && styles.armTabActive]}
+          onPress={() => setArm('left')}
+        >
+          <Text style={[styles.armTabText, arm === 'left' && styles.armTabTextActive]}>VENSTRE</Text>
+        </Pressable>
       </View>
 
       <View style={styles.filters}>
@@ -64,7 +85,8 @@ export function MatchmakingScreen({ currentUser, clubs }: MatchmakingScreenProps
               item.birthDate && item.gender && item.weight
                 ? classifyAthlete(item.birthDate, item.gender, item.weight)
                 : null
-            const diff = (item.rating ?? 1200) - (currentUser.rating ?? 1200)
+            const itemRating = item[ratingField] ?? 1200
+            const diff = itemRating - (myRating ?? 1200)
 
             return (
               <View style={styles.card}>
@@ -78,7 +100,7 @@ export function MatchmakingScreen({ currentUser, clubs }: MatchmakingScreenProps
                   )}
                 </View>
                 <View style={styles.cardRight}>
-                  <Text style={styles.rating}>{item.rating}</Text>
+                  <Text style={styles.rating}>{itemRating}</Text>
                   <Text style={[styles.diff, { color: diff >= 0 ? colors.danger : colors.success }]}>
                     {diff >= 0 ? '+' : ''}
                     {diff}
@@ -95,9 +117,22 @@ export function MatchmakingScreen({ currentUser, clubs }: MatchmakingScreenProps
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: spacing.md },
-  header: { marginBottom: spacing.md },
+  header: { marginBottom: spacing.sm },
   eyebrow: { color: colors.primary, fontSize: 11, letterSpacing: 1.5, fontFamily: fonts.displayMedium },
   title: { fontSize: 18, color: colors.ink, fontFamily: fonts.display, marginTop: 4 },
+  armTabs: { flexDirection: 'row', marginBottom: spacing.md, gap: spacing.xs },
+  armTab: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  armTabActive: { backgroundColor: colors.ink, borderColor: colors.ink },
+  armTabText: { fontSize: 11, color: colors.inkMuted, fontFamily: fonts.displayMedium },
+  armTabTextActive: { color: '#fff' },
   filters: { marginBottom: spacing.md },
   filterLabel: {
     fontSize: 11,

@@ -1,14 +1,22 @@
 import { SupermatchRepository } from '../repositories/SupermatchRepository'
+import { TournamentMatchRepository } from '../repositories/TournamentMatchRepository'
 import { TournamentRepository } from '../repositories/TournamentRepository'
 import { UserRepository } from '../repositories/UserRepository'
+
+export interface TournamentMatchEntry {
+  opponentId: string
+  opponentName: string
+  won: boolean
+  ratingBefore: number
+  ratingAfter: number
+}
 
 export interface TournamentHistoryEntry {
   tournamentId: string
   tournamentName: string
   date: string
-  placement: number
-  ratingBefore: number
-  ratingAfter: number
+  matches: TournamentMatchEntry[]
+  netChange: number
 }
 
 export interface SupermatchHistoryEntry {
@@ -22,18 +30,46 @@ export interface SupermatchHistoryEntry {
 }
 
 export async function getTournamentHistory(userId: string): Promise<TournamentHistoryEntry[]> {
-  const results = await TournamentRepository.getResultsByUserId(userId)
+  const allMatches = await TournamentMatchRepository.getByPlayerId(userId)
+
+  const byTournament = new Map<string, typeof allMatches>()
+  for (const m of allMatches) {
+    const arr = byTournament.get(m.tournamentId) ?? []
+    arr.push(m)
+    byTournament.set(m.tournamentId, arr)
+  }
 
   const entries = await Promise.all(
-    results.map(async (result) => {
-      const tournament = await TournamentRepository.getById(result.tournamentId)
+    Array.from(byTournament.entries()).map(async ([tournamentId, matches]) => {
+      const tournament = await TournamentRepository.getById(tournamentId)
+      const sorted = [...matches].sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+
+      const matchEntries = await Promise.all(
+        sorted.map(async (m) => {
+          const isPlayerA = m.playerAId === userId
+          const opponentId = isPlayerA ? m.playerBId : m.playerAId
+          const opponent = await UserRepository.getById(opponentId)
+          return {
+            opponentId,
+            opponentName: opponent?.name ?? 'Ukendt spiller',
+            won: m.winnerId === userId,
+            ratingBefore: isPlayerA ? m.ratingABefore : m.ratingBBefore,
+            ratingAfter: isPlayerA ? m.ratingAAfter : m.ratingBAfter,
+          }
+        })
+      )
+
+      const netChange =
+        matchEntries.length > 0
+          ? matchEntries[matchEntries.length - 1].ratingAfter - matchEntries[0].ratingBefore
+          : 0
+
       return {
-        tournamentId: result.tournamentId,
+        tournamentId,
         tournamentName: tournament?.name ?? 'Ukendt turnering',
         date: tournament?.date ?? '',
-        placement: result.placement,
-        ratingBefore: result.ratingBefore,
-        ratingAfter: result.ratingAfter,
+        matches: matchEntries,
+        netChange,
       }
     })
   )
