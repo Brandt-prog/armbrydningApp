@@ -5,6 +5,7 @@ import type { Club } from '../models/Club'
 import type { User } from '../models/User'
 import { classifyAthlete } from '../services/WeightClassService'
 import { colors, fonts, radius, spacing } from '../theme/theme'
+import { useConnectivity } from '../viewmodels/useConnectivity'
 import { usePlayerHistory } from '../viewmodels/usePlayerHistory'
 
 interface PlayerProfileViewProps {
@@ -12,13 +13,20 @@ interface PlayerProfileViewProps {
   clubs: Club[]
   isOwnProfile?: boolean
   onSignOut?: () => Promise<void>
+  viewerUserId?: string
 }
 
-export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut }: PlayerProfileViewProps) {
+export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewerUserId }: PlayerProfileViewProps) {
   const router = useRouter()
   const { tournaments, supermatches, loading, error } = usePlayerHistory(user.id)
   const clubName = clubs.find((c) => c.id === user.clubId)?.name ?? 'Ukendt klub'
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  const showConnectivity = !isOwnProfile && !!viewerUserId
+  const { connectedRight, connectedLeft, loading: loadingConnectivity } = useConnectivity(
+    viewerUserId ?? user.id,
+    user.id
+  )
 
   const classification =
     user.birthDate && user.gender && user.weight
@@ -63,14 +71,34 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut }: Play
             <Text style={styles.rating}>{user.ratingRight}</Text>
             <Text style={styles.rd}>±{user.ratingRightRD}</Text>
             <Text style={styles.ratingLabel}>HØJRE</Text>
+            {showConnectivity && !loadingConnectivity && connectedRight !== null && (
+              <View style={[styles.connBadge, connectedRight ? styles.connBadgeYes : styles.connBadgeNo]}>
+                <Text style={styles.connBadgeText}>
+                  {connectedRight ? 'SAMMENLIGNELIG' : 'IKKE SAMMENLIGNELIG'}
+                </Text>
+              </View>
+            )}
           </View>
           <View style={styles.ratingDivider} />
           <View style={styles.ratingBlock}>
             <Text style={styles.rating}>{user.ratingLeft}</Text>
             <Text style={styles.rd}>±{user.ratingLeftRD}</Text>
             <Text style={styles.ratingLabel}>VENSTRE</Text>
+            {showConnectivity && !loadingConnectivity && connectedLeft !== null && (
+              <View style={[styles.connBadge, connectedLeft ? styles.connBadgeYes : styles.connBadgeNo]}>
+                <Text style={styles.connBadgeText}>
+                  {connectedLeft ? 'SAMMENLIGNELIG' : 'IKKE SAMMENLIGNELIG'}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
+
+        {showConnectivity && (connectedRight === false || connectedLeft === false) && (
+          <Text style={styles.connHint}>
+            Ingen fælles modstandere endnu — rating-forskellen er ikke nødvendigvis retvisende.
+          </Text>
+        )}
       </View>
 
       <View style={styles.body}>
@@ -207,12 +235,36 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   classBadgeText: { color: '#fff', fontSize: 11, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
-  ratingsRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md },
+  ratingsRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.md },
   ratingBlock: { alignItems: 'center', paddingHorizontal: spacing.lg },
-  ratingDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.3)' },
+  ratingDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.3)', marginTop: 8 },
   rating: { fontSize: 40, color: '#fff', fontFamily: fonts.display },
   rd: { fontSize: 12, color: '#fff', opacity: 0.75, fontFamily: fonts.displayMedium },
-  ratingLabel: { color: '#fff', opacity: 0.75, fontSize: 11, letterSpacing: 1.5, fontFamily: fonts.displayMedium, marginTop: 2 },
+  ratingLabel: {
+    color: '#fff',
+    opacity: 0.75,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    fontFamily: fonts.displayMedium,
+    marginTop: 2,
+  },
+  connBadge: {
+    marginTop: 6,
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  connBadgeYes: { backgroundColor: 'rgba(255,255,255,0.2)' },
+  connBadgeNo: { backgroundColor: 'rgba(0,0,0,0.25)' },
+  connBadgeText: { fontSize: 8, color: '#fff', fontFamily: fonts.displayMedium, letterSpacing: 0.3 },
+  connHint: {
+    color: '#fff',
+    opacity: 0.8,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
   body: { backgroundColor: colors.background, padding: spacing.md, minHeight: 400 },
   signOut: { color: colors.primary, fontWeight: '600', marginBottom: spacing.md },
   info: { color: colors.inkMuted, marginBottom: spacing.md },

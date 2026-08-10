@@ -1,1 +1,1 @@
-export type Role = 'member' | 'club_admin' | 'super_admin'
+export type Role = 'member' | 'judge' | 'club_admin' | 'super_admin'

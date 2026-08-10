@@ -2,36 +2,25 @@ import { colors, fonts, spacing } from '@/src/theme/theme';
 import { useClubs } from '@/src/viewmodels/useClubs';
 import { AdminApprovalScreen } from '@/src/views/AdminApprovalScreen';
 import { AuthGate } from '@/src/views/AuthGate';
-import { CreateClubScreen } from '@/src/views/CreateClubScreen';
 import { LeaderboardScreen } from '@/src/views/LeaderboardScreen';
-import { RecordSupermatchScreen } from '@/src/views/RecordSupermatchScreen';
-import { RecordTournamentScreen } from '@/src/views/RecordTournamentScreen';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-
-type AdminTab = 'approvals' | 'tournament' | 'supermatch' | 'clubs';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
   const { clubs } = useClubs();
-  const [adminTab, setAdminTab] = useState<AdminTab>('approvals');
 
   return (
     <AuthGate>
       {(currentUser, signOut) => {
-        const isClubAdmin = currentUser.roles.includes('club_admin');
-        const isSuperAdmin = currentUser.roles.includes('super_admin');
-        const isAdmin = isClubAdmin || isSuperAdmin;
+        const isAdmin = currentUser.roles.includes('club_admin') || currentUser.roles.includes('super_admin');
 
         return (
           <ScrollView style={styles.container}>
             <View style={styles.header}>
               <View>
-                <Text style={styles.eyebrow}>ARMBRYDNING DANMARK</Text>
+                <Text style={styles.eyebrow}>ARMBRYDNING</Text>
                 <Text style={styles.title}>{currentUser.name}</Text>
               </View>
-              <Text style={styles.link} onPress={signOut}>
-                Log ud
-              </Text>
+              <Text style={styles.link} onPress={signOut}>Log ud</Text>
             </View>
 
             {currentUser.status === 'active' && (
@@ -40,51 +29,7 @@ export default function HomeScreen() {
 
             {isAdmin && (
               <View style={styles.adminSection}>
-                <View style={styles.adminTabs}>
-                  <Pressable
-                    style={[styles.adminTab, adminTab === 'approvals' && styles.adminTabActive]}
-                    onPress={() => setAdminTab('approvals')}
-                  >
-                    <Text style={[styles.adminTabText, adminTab === 'approvals' && styles.adminTabTextActive]}>
-                      GODKENDELSER
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.adminTab, adminTab === 'tournament' && styles.adminTabActive]}
-                    onPress={() => setAdminTab('tournament')}
-                  >
-                    <Text style={[styles.adminTabText, adminTab === 'tournament' && styles.adminTabTextActive]}>
-                      TURNERING
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.adminTab, adminTab === 'supermatch' && styles.adminTabActive]}
-                    onPress={() => setAdminTab('supermatch')}
-                  >
-                    <Text style={[styles.adminTabText, adminTab === 'supermatch' && styles.adminTabTextActive]}>
-                      SUPERMATCH
-                    </Text>
-                  </Pressable>
-                  {isSuperAdmin && (
-                    <Pressable
-                      style={[styles.adminTab, adminTab === 'clubs' && styles.adminTabActive]}
-                      onPress={() => setAdminTab('clubs')}
-                    >
-                      <Text style={[styles.adminTabText, adminTab === 'clubs' && styles.adminTabTextActive]}>
-                        KLUBBER
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
-
-                {adminTab === 'approvals' && <AdminApprovalScreen currentUser={currentUser} />}
-                {adminTab === 'tournament' && (
-                  <RecordTournamentScreen recordedBy={currentUser.id} organizingClubId={currentUser.clubId} />
-                )}
-                {adminTab === 'supermatch' && (
-                  <RecordSupermatchScreen recordedBy={currentUser.id} organizingClubId={currentUser.clubId} />
-                )}
-                {adminTab === 'clubs' && isSuperAdmin && <CreateClubScreen />}
+                <AdminApprovalScreen currentUser={currentUser} />
               </View>
             )}
           </ScrollView>
@@ -108,18 +53,4 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, color: '#fff', fontFamily: fonts.display, marginTop: 4 },
   link: { color: '#fff', fontWeight: '600', paddingBottom: 4 },
   adminSection: { padding: spacing.md, backgroundColor: colors.background },
-  adminTabs: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.sm, flexWrap: 'wrap' },
-  adminTab: {
-    flex: 1,
-    minWidth: 80,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  adminTabActive: { backgroundColor: colors.ink, borderColor: colors.ink },
-  adminTabText: { fontSize: 10, color: colors.inkMuted, fontFamily: fonts.displayMedium },
-  adminTabTextActive: { color: '#fff' },
 });

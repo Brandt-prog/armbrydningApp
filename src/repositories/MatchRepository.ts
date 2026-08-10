@@ -12,12 +12,13 @@ interface MatchRow {
   winner_id: string
   date: string
   arm: Arm
-  recorded_by: string
+  reported_by: string
+  confirmed_by: string | null
   status: MatchStatus
-  rating_a_before: number
-  rating_b_before: number
-  rating_a_after: number
-  rating_b_after: number
+  rating_a_before: number | null
+  rating_b_before: number | null
+  rating_a_after: number | null
+  rating_b_after: number | null
 }
 
 function toDomain(row: MatchRow): Match {
@@ -28,7 +29,8 @@ function toDomain(row: MatchRow): Match {
     winnerId: row.winner_id,
     date: row.date,
     arm: row.arm,
-    recordedBy: row.recorded_by,
+    reportedBy: row.reported_by,
+    confirmedBy: row.confirmed_by,
     status: row.status,
     ratingABefore: row.rating_a_before,
     ratingBBefore: row.rating_b_before,
@@ -45,7 +47,8 @@ function toRow(m: Partial<Match>): Partial<MatchRow> {
   if (m.winnerId !== undefined) row.winner_id = m.winnerId
   if (m.date !== undefined) row.date = m.date
   if (m.arm !== undefined) row.arm = m.arm
-  if (m.recordedBy !== undefined) row.recorded_by = m.recordedBy
+  if (m.reportedBy !== undefined) row.reported_by = m.reportedBy
+  if (m.confirmedBy !== undefined) row.confirmed_by = m.confirmedBy
   if (m.status !== undefined) row.status = m.status
   if (m.ratingABefore !== undefined) row.rating_a_before = m.ratingABefore
   if (m.ratingBBefore !== undefined) row.rating_b_before = m.ratingBBefore
@@ -61,6 +64,15 @@ export const MatchRepository = {
     return (data as MatchRow[]).map(toDomain)
   },
 
+  async getById(id: string): Promise<Match | null> {
+    const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).single()
+    if (error) {
+      if (error.code === 'PGRST116') return null
+      throw error
+    }
+    return toDomain(data as MatchRow)
+  },
+
   async getByPlayerId(playerId: string): Promise<Match[]> {
     const { data, error } = await supabase
       .from(TABLE)
@@ -70,8 +82,30 @@ export const MatchRepository = {
     return (data as MatchRow[]).map(toDomain)
   },
 
+  async getPendingForPlayer(playerId: string): Promise<Match[]> {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .or(`player_a_id.eq.${playerId},player_b_id.eq.${playerId}`)
+      .eq('status', 'pending_confirmation')
+    if (error) throw error
+    return (data as MatchRow[]).map(toDomain)
+  },
+
+  async getAllByArm(arm: Arm): Promise<Match[]> {
+    const { data, error } = await supabase.from(TABLE).select('*').eq('arm', arm)
+    if (error) throw error
+    return (data as MatchRow[]).map(toDomain)
+  },
+
   async create(m: Omit<Match, 'id'>): Promise<Match> {
     const { data, error } = await supabase.from(TABLE).insert(toRow(m)).select().single()
+    if (error) throw error
+    return toDomain(data as MatchRow)
+  },
+
+  async update(id: string, changes: Partial<Match>): Promise<Match> {
+    const { data, error } = await supabase.from(TABLE).update(toRow(changes)).eq('id', id).select().single()
     if (error) throw error
     return toDomain(data as MatchRow)
   },

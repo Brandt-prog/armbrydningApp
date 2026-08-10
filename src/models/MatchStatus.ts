@@ -1,1 +1,1 @@
-export type MatchStatus = 'active' | 'voided'
+export type MatchStatus = 'pending_confirmation' | 'confirmed' | 'cancelled'

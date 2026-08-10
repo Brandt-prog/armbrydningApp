@@ -1,4 +1,5 @@
 import type { Arm } from '../models/Arm'
+import { MatchRepository } from '../repositories/MatchRepository'
 import { SupermatchRepository } from '../repositories/SupermatchRepository'
 import { TournamentMatchRepository } from '../repositories/TournamentMatchRepository'
 
@@ -31,10 +32,46 @@ export async function areUsersConnected(userAId: string, userBId: string, arm: A
   return visited.has(userBId)
 }
 
+/**
+ * Finds all connected components in the "who has played whom" graph for
+ * a given arm. Each component is a set of user IDs that are all reachable
+ * from one another through some chain of matches.
+ */
+export async function getConnectedComponents(arm: Arm): Promise<Set<string>[]> {
+  const adjacency = await buildAdjacency(arm)
+  const visited = new Set<string>()
+  const components: Set<string>[] = []
+
+  for (const startNode of adjacency.keys()) {
+    if (visited.has(startNode)) continue
+
+    const component = new Set<string>()
+    const queue: string[] = [startNode]
+    visited.add(startNode)
+
+    while (queue.length > 0) {
+      const current = queue.shift()!
+      component.add(current)
+      const neighbors = adjacency.get(current) ?? new Set()
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor)
+          queue.push(neighbor)
+        }
+      }
+    }
+
+    components.push(component)
+  }
+
+  return components
+}
+
 async function buildAdjacency(arm: Arm): Promise<Map<string, Set<string>>> {
-  const [allTournamentMatches, allSupermatches] = await Promise.all([
+  const [allTournamentMatches, allSupermatches, allClubMatches] = await Promise.all([
     TournamentMatchRepository.getAllByArm(arm),
     SupermatchRepository.getAllByArm(arm),
+    MatchRepository.getAllByArm(arm),
   ])
 
   const adjacency = new Map<string, Set<string>>()
@@ -48,6 +85,7 @@ async function buildAdjacency(arm: Arm): Promise<Map<string, Set<string>>> {
 
   for (const m of allTournamentMatches) addEdge(m.playerAId, m.playerBId)
   for (const s of allSupermatches) addEdge(s.playerAId, s.playerBId)
+  for (const m of allClubMatches.filter((m) => m.status === 'confirmed')) addEdge(m.playerAId, m.playerBId)
 
   return adjacency
 }

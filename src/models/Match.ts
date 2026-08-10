@@ -8,11 +8,13 @@ export interface Match {
   winnerId: string
   date: string
   arm: Arm
-  recordedBy: string
+
+  reportedBy: string
+  confirmedBy: string | null
   status: MatchStatus
 
-  ratingABefore: number
-  ratingBBefore: number
-  ratingAAfter: number
-  ratingBAfter: number
+  ratingABefore: number | null
+  ratingBBefore: number | null
+  ratingAAfter: number | null
+  ratingBAfter: number | null
 }

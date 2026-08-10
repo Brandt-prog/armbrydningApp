@@ -13,7 +13,7 @@ export default function PlayerProfileScreen() {
 
   return (
     <AuthGate>
-      {() => {
+      {(currentUser) => {
         if (loading) {
           return (
             <View style={styles.center}>
@@ -28,7 +28,14 @@ export default function PlayerProfileScreen() {
             </View>
           );
         }
-        return <PlayerProfileView user={user} clubs={clubs} />;
+        return (
+          <PlayerProfileView
+            user={user}
+            clubs={clubs}
+            viewerUserId={currentUser.id}
+            isOwnProfile={currentUser.id === user.id}
+          />
+        );
       }}
     </AuthGate>
   );
