@@ -21,7 +21,7 @@ interface PlayerProfileViewProps {
 
 export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewerUserId, showBackButton }: PlayerProfileViewProps) {
   const router = useRouter()
-  const { tournaments, supermatches, loading, error } = usePlayerHistory(user.id)
+  const { tournaments, supermatches, clubMatches, loading, error } = usePlayerHistory(user.id)
   const clubName = clubs.find((c) => c.id === user.clubId)?.name ?? 'Ukendt klub'
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
@@ -170,6 +170,28 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
           <Text style={styles.error}>{error}</Text>
         ) : (
           <>
+            <Text style={styles.sectionTitle}>KLUBKAMPE</Text>
+            {clubMatches.length === 0 ? (
+              <Text style={styles.info}>Ingen klubkampe spillet endnu.</Text>
+            ) : (
+              clubMatches.map((m) => (
+                <Pressable key={m.matchId} style={styles.card} onPress={() => goToOpponent(m.opponentId)}>
+                  <View style={styles.cardTop}>
+                    <Text style={styles.cardTitle}>vs. {m.opponentName}</Text>
+                    <Text style={styles.cardDate}>{formatDate(m.date)}</Text>
+                  </View>
+                  <View style={styles.cardBottom}>
+                    <Text style={styles.placement}>
+                      {m.arm === 'left' ? 'Venstre' : 'Højre'} · {m.won ? 'Vundet' : 'Tabt'}
+                    </Text>
+                    <Text style={[styles.change, { color: m.ratingAfter >= m.ratingBefore ? colors.success : colors.danger }]}>
+                      {m.ratingAfter >= m.ratingBefore ? '+' : ''}{m.ratingAfter - m.ratingBefore}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))
+            )}
+
             <Text style={styles.sectionTitle}>TURNERINGER</Text>
             {tournaments.length === 0 ? (
               <Text style={styles.info}>Ingen turneringer spillet endnu.</Text>

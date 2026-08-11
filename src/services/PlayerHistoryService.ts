@@ -1,3 +1,4 @@
+import { MatchRepository } from '../repositories/MatchRepository'
 import { SupermatchRepository } from '../repositories/SupermatchRepository'
 import { TournamentMatchRepository } from '../repositories/TournamentMatchRepository'
 import { TournamentRepository } from '../repositories/TournamentRepository'
@@ -25,6 +26,17 @@ export interface SupermatchHistoryEntry {
   date: string
   gamesWon: number
   gamesLost: number
+  ratingBefore: number
+  ratingAfter: number
+}
+
+export interface ClubMatchHistoryEntry {
+  matchId: string
+  opponentId: string
+  opponentName: string
+  date: string
+  arm: 'left' | 'right'
+  won: boolean
   ratingBefore: number
   ratingAfter: number
 }
@@ -101,6 +113,32 @@ export async function getSupermatchHistory(userId: string): Promise<SupermatchHi
         gamesLost,
         ratingBefore: ratingBefore ?? ratingAfter,
         ratingAfter,
+      }
+    })
+  )
+
+  return entries.sort((a, b) => (a.date < b.date ? 1 : -1))
+}
+
+export async function getClubMatchHistory(userId: string): Promise<ClubMatchHistoryEntry[]> {
+  const allMatches = await MatchRepository.getByPlayerId(userId)
+  const confirmed = allMatches.filter((m) => m.status === 'confirmed')
+
+  const entries = await Promise.all(
+    confirmed.map(async (m) => {
+      const isPlayerA = m.playerAId === userId
+      const opponentId = isPlayerA ? m.playerBId : m.playerAId
+      const opponent = await UserRepository.getById(opponentId)
+
+      return {
+        matchId: m.id,
+        opponentId,
+        opponentName: opponent?.name ?? 'Ukendt spiller',
+        date: m.date,
+        arm: m.arm,
+        won: m.winnerId === userId,
+        ratingBefore: (isPlayerA ? m.ratingABefore : m.ratingBBefore) ?? 0,
+        ratingAfter: (isPlayerA ? m.ratingAAfter : m.ratingBAfter) ?? 0,
       }
     })
   )
