@@ -34,6 +34,7 @@ export default function PlayerProfileScreen() {
             clubs={clubs}
             viewerUserId={currentUser.id}
             isOwnProfile={currentUser.id === user.id}
+            showBackButton
           />
         );
       }}

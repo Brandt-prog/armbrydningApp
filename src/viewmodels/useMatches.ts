@@ -50,18 +50,15 @@ export function useMatches(currentUserId: string) {
     [currentUserId]
   )
 
-  const confirm = useCallback(
-    async (matchId: string) => {
-      setError(null)
-      try {
-        await confirmMatch(matchId, currentUserId)
-      } catch (err) {
-        setError((err as Error).message)
-        throw err
-      }
-    },
-    [currentUserId]
-  )
+  const confirm = useCallback(async (matchId: string) => {
+    setError(null)
+    try {
+      await confirmMatch(matchId)
+    } catch (err) {
+      setError((err as Error).message)
+      throw err
+    }
+  }, [])
 
   const cancel = useCallback(async (matchId: string) => {
     setError(null)

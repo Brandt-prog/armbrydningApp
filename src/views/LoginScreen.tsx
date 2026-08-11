@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Text, TextInput } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 
 interface LoginScreenProps {
@@ -30,7 +31,12 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAwareScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid
+      extraScrollHeight={20}
+    >
       <Text style={styles.eyebrow}>ARMBRYDNING DANMARK</Text>
       <Text style={styles.title}>{mode === 'signin' ? 'Log ind' : 'Opret konto'}</Text>
 
@@ -67,12 +73,12 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
       </Pressable>
 
       {error && <Text style={styles.error}>{error}</Text>}
-    </View>
+    </KeyboardAwareScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.background },
+  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.background },
   eyebrow: {
     color: colors.primary,
     fontSize: 11,

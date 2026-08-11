@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
+import { Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 import { useClubs } from '../viewmodels/useClubs'
+import { PrivacyPolicyContent } from './PrivacyPolicyContent'
 
 interface CompleteProfileScreenProps {
   onComplete: (profile: {
@@ -25,6 +27,7 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
   const [gender, setGender] = useState<'male' | 'female'>('male')
   const [consent, setConsent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
 
   async function handleSubmit() {
     if (!consent || !clubId || !name || !birthDate) return
@@ -44,7 +47,12 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAwareScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid
+      extraScrollHeight={20}
+    >
       <Text style={styles.eyebrow}>TRIN 2 AF 2</Text>
       <Text style={styles.title}>Fuldfør din profil</Text>
 
@@ -116,7 +124,10 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
       <View style={styles.consentRow}>
         <Switch value={consent} onValueChange={setConsent} trackColor={{ true: colors.primary }} />
         <Text style={styles.consentText}>
-          Jeg accepterer, at mit navn og min rating vises på den nationale rangliste
+          Jeg accepterer, at mit navn og min rating vises på ranglisten.{' '}
+          <Text style={styles.consentLink} onPress={() => setShowPrivacy(true)}>
+            Se privatlivspolitik
+          </Text>
         </Text>
       </View>
 
@@ -129,7 +140,16 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
       </Pressable>
 
       {error && <Text style={styles.error}>{error}</Text>}
-    </ScrollView>
+
+      <Modal visible={showPrivacy} animationType="slide" onRequestClose={() => setShowPrivacy(false)}>
+        <View style={{ flex: 1 }}>
+          <Pressable onPress={() => setShowPrivacy(false)} style={styles.modalCloseButton}>
+            <Text style={styles.modalCloseText}>Luk</Text>
+          </Pressable>
+          <PrivacyPolicyContent />
+        </View>
+      </Modal>
+    </KeyboardAwareScrollView>
   )
 }
 
@@ -191,6 +211,7 @@ const styles = StyleSheet.create({
   },
   consentRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, gap: spacing.sm },
   consentText: { flex: 1, fontSize: 13, color: colors.ink },
+  consentLink: { color: colors.primary, textDecorationLine: 'underline', fontWeight: '600' },
   button: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
@@ -201,4 +222,6 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.4 },
   buttonText: { color: '#fff', fontSize: 15, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
   error: { color: colors.danger, marginTop: spacing.md, textAlign: 'center' },
+  modalCloseButton: { paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  modalCloseText: { color: colors.primary, fontSize: 15, fontFamily: fonts.displayMedium },
 })
