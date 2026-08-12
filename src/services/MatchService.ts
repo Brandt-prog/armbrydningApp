@@ -66,3 +66,10 @@ export async function cancelMatch(matchId: string): Promise<Match> {
   }
   return MatchRepository.update(matchId, { status: 'cancelled' })
 }
+
+export async function voidMatch(matchId: string): Promise<void> {
+  const { error } = await supabase.rpc('void_club_match', { p_match_id: matchId })
+  if (error) {
+    throw new MatchServiceError(error.message)
+  }
+}

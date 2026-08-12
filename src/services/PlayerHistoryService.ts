@@ -39,6 +39,7 @@ export interface ClubMatchHistoryEntry {
   won: boolean
   ratingBefore: number
   ratingAfter: number
+  voided: boolean
 }
 
 export async function getTournamentHistory(userId: string): Promise<TournamentHistoryEntry[]> {
@@ -122,10 +123,10 @@ export async function getSupermatchHistory(userId: string): Promise<SupermatchHi
 
 export async function getClubMatchHistory(userId: string): Promise<ClubMatchHistoryEntry[]> {
   const allMatches = await MatchRepository.getByPlayerId(userId)
-  const confirmed = allMatches.filter((m) => m.status === 'confirmed')
+  const relevant = allMatches.filter((m) => m.status === 'confirmed' || m.status === 'voided')
 
   const entries = await Promise.all(
-    confirmed.map(async (m) => {
+    relevant.map(async (m) => {
       const isPlayerA = m.playerAId === userId
       const opponentId = isPlayerA ? m.playerBId : m.playerAId
       const opponent = await UserRepository.getById(opponentId)
@@ -139,6 +140,7 @@ export async function getClubMatchHistory(userId: string): Promise<ClubMatchHist
         won: m.winnerId === userId,
         ratingBefore: (isPlayerA ? m.ratingABefore : m.ratingBBefore) ?? 0,
         ratingAfter: (isPlayerA ? m.ratingAAfter : m.ratingBAfter) ?? 0,
+        voided: m.status === 'voided',
       }
     })
   )

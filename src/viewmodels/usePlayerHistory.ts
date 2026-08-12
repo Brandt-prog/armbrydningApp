@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { voidMatch } from '../services/MatchService'
 import type { ClubMatchHistoryEntry, SupermatchHistoryEntry, TournamentHistoryEntry } from '../services/PlayerHistoryService'
 import { getClubMatchHistory, getSupermatchHistory, getTournamentHistory } from '../services/PlayerHistoryService'
 
@@ -31,5 +32,13 @@ export function usePlayerHistory(userId: string) {
     load()
   }, [load])
 
-  return { tournaments, supermatches, clubMatches, loading, error, refresh: load }
+  const voidClubMatch = useCallback(
+    async (matchId: string) => {
+      await voidMatch(matchId)
+      await load()
+    },
+    [load]
+  )
+
+  return { tournaments, supermatches, clubMatches, loading, error, refresh: load, voidClubMatch }
 }

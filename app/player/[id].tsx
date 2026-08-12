@@ -28,6 +28,7 @@ export default function PlayerProfileScreen() {
             </View>
           );
         }
+        const isAdmin = currentUser.roles.includes('club_admin') || currentUser.roles.includes('super_admin');
         return (
           <PlayerProfileView
             user={user}
@@ -35,6 +36,7 @@ export default function PlayerProfileScreen() {
             viewerUserId={currentUser.id}
             isOwnProfile={currentUser.id === user.id}
             showBackButton
+            isAdmin={isAdmin}
           />
         );
       }}

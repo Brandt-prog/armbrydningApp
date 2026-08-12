@@ -17,13 +17,15 @@ interface PlayerProfileViewProps {
   onSignOut?: () => Promise<void>
   viewerUserId?: string
   showBackButton?: boolean
+  isAdmin?: boolean
 }
 
-export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewerUserId, showBackButton }: PlayerProfileViewProps) {
+export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewerUserId, showBackButton, isAdmin }: PlayerProfileViewProps) {
   const router = useRouter()
-  const { tournaments, supermatches, clubMatches, loading, error } = usePlayerHistory(user.id)
+  const { tournaments, supermatches, clubMatches, loading, error, voidClubMatch } = usePlayerHistory(user.id)
   const clubName = clubs.find((c) => c.id === user.clubId)?.name ?? 'Ukendt klub'
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [voidingId, setVoidingId] = useState<string | null>(null)
 
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(user.name)
@@ -65,6 +67,17 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
       setEditing(false)
     } catch {
       // error surfaced via saveError
+    }
+  }
+
+  async function handleVoid(matchId: string) {
+    setVoidingId(matchId)
+    try {
+      await voidClubMatch(matchId)
+    } catch {
+      // error will show via a future refresh; kept silent here for simplicity
+    } finally {
+      setVoidingId(null)
     }
   }
 
@@ -175,20 +188,34 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
               <Text style={styles.info}>Ingen klubkampe spillet endnu.</Text>
             ) : (
               clubMatches.map((m) => (
-                <Pressable key={m.matchId} style={styles.card} onPress={() => goToOpponent(m.opponentId)}>
-                  <View style={styles.cardTop}>
-                    <Text style={styles.cardTitle}>vs. {m.opponentName}</Text>
-                    <Text style={styles.cardDate}>{formatDate(m.date)}</Text>
-                  </View>
-                  <View style={styles.cardBottom}>
-                    <Text style={styles.placement}>
-                      {m.arm === 'left' ? 'Venstre' : 'Højre'} · {m.won ? 'Vundet' : 'Tabt'}
-                    </Text>
-                    <Text style={[styles.change, { color: m.ratingAfter >= m.ratingBefore ? colors.success : colors.danger }]}>
-                      {m.ratingAfter >= m.ratingBefore ? '+' : ''}{m.ratingAfter - m.ratingBefore}
-                    </Text>
-                  </View>
-                </Pressable>
+                <View key={m.matchId} style={[styles.card, m.voided && styles.cardVoided]}>
+                  <Pressable onPress={() => goToOpponent(m.opponentId)}>
+                    <View style={styles.cardTop}>
+                      <Text style={styles.cardTitle}>vs. {m.opponentName}</Text>
+                      <Text style={styles.cardDate}>{formatDate(m.date)}</Text>
+                    </View>
+                    <View style={styles.cardBottom}>
+                      <Text style={styles.placement}>
+                        {m.arm === 'left' ? 'Venstre' : 'Højre'} · {m.won ? 'Vundet' : 'Tabt'}
+                        {m.voided ? ' · ANNULLERET' : ''}
+                      </Text>
+                      <Text style={[styles.change, { color: m.ratingAfter >= m.ratingBefore ? colors.success : colors.danger }]}>
+                        {m.ratingAfter >= m.ratingBefore ? '+' : ''}{m.ratingAfter - m.ratingBefore}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  {isAdmin && !m.voided && (
+                    <Pressable
+                      style={styles.voidButton}
+                      onPress={() => handleVoid(m.matchId)}
+                      disabled={voidingId === m.matchId}
+                    >
+                      <Text style={styles.voidButtonText}>
+                        {voidingId === m.matchId ? 'ANNULLERER...' : 'ANNULLÉR KAMP'}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
               ))
             )}
 
@@ -301,12 +328,21 @@ const styles = StyleSheet.create({
   error: { color: colors.danger },
   sectionTitle: { fontSize: 12, letterSpacing: 1, color: colors.inkMuted, fontFamily: fonts.displayMedium, marginTop: spacing.md, marginBottom: spacing.sm },
   card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  cardVoided: { opacity: 0.5 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   cardTitle: { fontSize: 15, fontWeight: '600', color: colors.ink },
   cardDate: { fontSize: 12, color: colors.inkMuted },
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   placement: { fontSize: 13, color: colors.inkMuted },
   change: { fontSize: 16, fontFamily: fonts.display },
+  voidButton: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    alignItems: 'center',
+  },
+  voidButtonText: { color: colors.danger, fontSize: 11, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
   summaryText: { fontSize: 12, color: colors.inkMuted },
   summaryToggle: { fontSize: 10, color: colors.primary, fontFamily: fonts.displayMedium },
