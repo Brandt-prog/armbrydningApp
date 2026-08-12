@@ -10,6 +10,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
         />
+        <meta name="robots" content="noindex, nofollow" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#B32B2D" />
         <ScrollViewStyleReset />
