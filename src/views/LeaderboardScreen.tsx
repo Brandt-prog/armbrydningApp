@@ -100,6 +100,10 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
     <View style={styles.container}>
       <Text style={styles.clubTitle}>{clubName.toUpperCase()}</Text>
 
+      <Pressable onPress={() => router.push('/how-ranking-works')} style={styles.howItWorksLink}>
+        <Text style={styles.howItWorksLinkText}>ℹ️ Sådan virker ranglisten</Text>
+      </Pressable>
+
       <View style={styles.armTabs}>
         <Pressable style={[styles.armTab, arm === 'right' && styles.armTabActive]} onPress={() => setArm('right')}>
           <Text style={[styles.armTabText, arm === 'right' && styles.armTabTextActive]}>HØJRE</Text>
@@ -177,6 +181,8 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: spacing.md },
   clubTitle: { fontSize: 12, letterSpacing: 1, color: colors.primary, fontFamily: fonts.displayMedium, marginBottom: spacing.sm },
+  howItWorksLink: { marginBottom: spacing.sm },
+  howItWorksLinkText: { fontSize: 12, color: colors.primary, textDecorationLine: 'underline' },
   armTabs: { flexDirection: 'row', marginBottom: spacing.sm, gap: spacing.xs },
   armTab: { flex: 1, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   armTabActive: { backgroundColor: colors.ink, borderColor: colors.ink },

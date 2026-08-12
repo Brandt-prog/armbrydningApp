@@ -62,6 +62,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="privacy" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="how-ranking-works" options={{ presentation: 'modal', headerShown: false }} />
       </Stack>
       <StatusBar style="dark" />
     </ThemeProvider>
