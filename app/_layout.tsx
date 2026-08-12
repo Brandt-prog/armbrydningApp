@@ -1,4 +1,6 @@
 import { Oswald_500Medium, Oswald_700Bold, useFonts } from '@expo-google-fonts/oswald';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -20,6 +22,8 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Oswald_500Medium,
     Oswald_700Bold,
+    ...Ionicons.font,
+    ...MaterialCommunityIcons.font,
   });
 
   const { status, error, signUp, signIn, completeProfile } = useAuth();
