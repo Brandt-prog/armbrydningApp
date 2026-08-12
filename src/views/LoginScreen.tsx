@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput } from 'react-native'
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 
@@ -14,6 +14,7 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   async function handleSubmit() {
     setSubmitting(true)
@@ -72,7 +73,30 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
         </Text>
       </Pressable>
 
+      {mode === 'signin' && (
+        <Pressable onPress={() => setShowForgotPassword(true)}>
+          <Text style={styles.forgotText}>Glemt kodeord?</Text>
+        </Pressable>
+      )}
+
       {error && <Text style={styles.error}>{error}</Text>}
+
+      <Modal visible={showForgotPassword} animationType="slide" onRequestClose={() => setShowForgotPassword(false)}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={() => setShowForgotPassword(false)} style={styles.modalCloseButton}>
+            <Text style={styles.modalCloseText}>Luk</Text>
+          </Pressable>
+          <Text style={styles.modalTitle}>Glemt kodeord?</Text>
+          <Text style={styles.modalBody}>
+            Da vi ikke bruger almindelige e-mails til login, kan kodeord ikke nulstilles automatisk.
+          </Text>
+          <Text style={styles.modalBody}>
+            Kontakt din klubs administrator på{' '}
+            <Text style={styles.modalLink}>kontakt@armbrydning5000.dk</Text>, og oplys dit brugernavn
+            — så nulstiller de dit kodeord for dig.
+          </Text>
+        </View>
+      </Modal>
     </KeyboardAwareScrollView>
   )
 }
@@ -120,5 +144,12 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#fff', fontSize: 15, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
   switchText: { textAlign: 'center', marginTop: spacing.md, color: colors.primary },
+  forgotText: { textAlign: 'center', marginTop: spacing.sm, color: colors.inkMuted, fontSize: 13, textDecorationLine: 'underline' },
   error: { color: colors.danger, marginTop: spacing.md, textAlign: 'center' },
+  modalContainer: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, paddingTop: 60 },
+  modalCloseButton: { marginBottom: spacing.lg },
+  modalCloseText: { color: colors.primary, fontSize: 15, fontFamily: fonts.displayMedium },
+  modalTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.ink, marginBottom: spacing.md },
+  modalBody: { fontSize: 14, color: colors.ink, lineHeight: 21, marginBottom: spacing.md },
+  modalLink: { color: colors.primary, fontFamily: fonts.displayMedium },
 })
