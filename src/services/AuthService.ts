@@ -29,6 +29,11 @@ export const AuthService = {
     if (error) throw error
   },
 
+  async updatePassword(newPassword: string): Promise<void> {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw error
+  },
+
   async getSession(): Promise<Session | null> {
     const { data, error } = await supabase.auth.getSession()
     if (error) throw error

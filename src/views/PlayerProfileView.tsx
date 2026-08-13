@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import type { Club } from '../models/Club'
 import type { User } from '../models/User'
 import { classifyAthlete } from '../services/WeightClassService'
 import { colors, fonts, radius, spacing } from '../theme/theme'
+import { useChangePassword } from '../viewmodels/useChangePassword'
 import { useConnectivity } from '../viewmodels/useConnectivity'
 import { useEditProfile } from '../viewmodels/useEditProfile'
 import { usePlayerHistory } from '../viewmodels/usePlayerHistory'
@@ -32,6 +33,11 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
   const [editWeight, setEditWeight] = useState(user.weight?.toString() ?? '')
   const [editHeight, setEditHeight] = useState(user.height?.toString() ?? '')
   const { save, submitting, error: saveError } = useEditProfile(user.id)
+
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const { changePassword, submitting: changingPassword, error: passwordError, success: passwordSuccess } = useChangePassword()
 
   const showConnectivity = !isOwnProfile && !!viewerUserId
   const { connectedRight, connectedLeft, loading: loadingConnectivity } = useConnectivity(viewerUserId ?? user.id, user.id)
@@ -81,6 +87,20 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
     }
   }
 
+  async function handleChangePassword() {
+    await changePassword(newPassword, confirmPassword)
+    if (newPassword && confirmPassword && newPassword === confirmPassword && newPassword.length >= 6) {
+      setNewPassword('')
+      setConfirmPassword('')
+    }
+  }
+
+  function closePasswordModal() {
+    setShowChangePassword(false)
+    setNewPassword('')
+    setConfirmPassword('')
+  }
+
   return (
     <KeyboardAwareScrollView
       style={styles.container}
@@ -126,6 +146,9 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
               <>
                 <Pressable onPress={() => setEditing(true)}>
                   <Text style={styles.editLink}>Rediger profil</Text>
+                </Pressable>
+                <Pressable onPress={() => setShowChangePassword(true)}>
+                  <Text style={styles.editLink}>Skift kodeord</Text>
                 </Pressable>
                 <Pressable onPress={() => router.push('/privacy')}>
                   <Text style={styles.privacyLink}>Se privatlivspolitik</Text>
@@ -287,6 +310,44 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
           </>
         )}
       </View>
+
+      <Modal visible={showChangePassword} animationType="slide" onRequestClose={closePasswordModal}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={closePasswordModal} style={styles.modalCloseButton}>
+            <Text style={styles.modalCloseText}>Luk</Text>
+          </Pressable>
+          <Text style={styles.modalTitle}>Skift kodeord</Text>
+
+          <Text style={styles.modalLabel}>NYT KODEORD</Text>
+          <TextInput
+            style={styles.modalInput}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.modalLabel}>BEKRÆFT NYT KODEORD</Text>
+          <TextInput
+            style={styles.modalInput}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <Pressable
+            style={[styles.modalButton, changingPassword && styles.modalButtonDisabled]}
+            onPress={handleChangePassword}
+            disabled={changingPassword}
+          >
+            <Text style={styles.modalButtonText}>{changingPassword ? 'SKIFTER...' : 'SKIFT KODEORD'}</Text>
+          </Pressable>
+
+          {passwordError && <Text style={styles.modalError}>{passwordError}</Text>}
+          {passwordSuccess && <Text style={styles.modalSuccess}>Kodeord skiftet!</Text>}
+        </View>
+      </Modal>
     </KeyboardAwareScrollView>
   )
 }
@@ -351,4 +412,15 @@ const styles = StyleSheet.create({
   opponentResult: { fontSize: 10, fontFamily: fonts.displayMedium, width: 52 },
   opponentName: { fontSize: 12, color: colors.primary, flex: 1, textDecorationLine: 'underline' },
   opponentChange: { fontSize: 11, fontFamily: fonts.display },
+  modalContainer: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, paddingTop: 60 },
+  modalCloseButton: { marginBottom: spacing.lg },
+  modalCloseText: { color: colors.primary, fontSize: 15, fontFamily: fonts.displayMedium },
+  modalTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.ink, marginBottom: spacing.lg },
+  modalLabel: { fontSize: 11, letterSpacing: 1, marginBottom: spacing.xs, marginTop: spacing.md, color: colors.inkMuted, fontFamily: fonts.displayMedium },
+  modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 14, fontSize: 16, color: colors.ink, backgroundColor: colors.surface },
+  modalButton: { backgroundColor: colors.primary, borderRadius: radius.md, padding: 16, marginTop: spacing.lg, alignItems: 'center' },
+  modalButtonDisabled: { opacity: 0.4 },
+  modalButtonText: { color: '#fff', fontSize: 15, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
+  modalError: { color: colors.danger, marginTop: spacing.md, textAlign: 'center' },
+  modalSuccess: { color: colors.success, marginTop: spacing.md, textAlign: 'center' },
 })
