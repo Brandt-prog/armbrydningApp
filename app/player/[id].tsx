@@ -32,6 +32,7 @@ export default function PlayerProfileScreen() {
         return (
           <PlayerProfileView
             user={user}
+            currentUserId={currentUser.id}
             clubs={clubs}
             viewerUserId={currentUser.id}
             isOwnProfile={currentUser.id === user.id}

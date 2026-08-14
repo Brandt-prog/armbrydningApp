@@ -11,7 +11,7 @@ export default function HomeScreen() {
   return (
     <AuthGate>
       {(currentUser, signOut) => {
-        const isAdmin = currentUser.roles.includes('club_admin') || currentUser.roles.includes('super_admin');
+        const isAdmin = (currentUser.roles ?? []).includes('club_admin') || (currentUser.roles ?? []).includes('super_admin');
 
         return (
           <ScrollView style={styles.container}>

@@ -15,6 +15,8 @@ export interface LeaderboardEntry {
   opponentCount: number
   isMainCluster: boolean
   isEstablished: boolean
+  ageCategory: string | null
+  weightClass: string | null
 }
 
 export function useLeaderboard(clubId: string | null, arm: Arm) {
@@ -43,14 +45,14 @@ export function useLeaderboard(clubId: string | null, arm: Arm) {
         .filter((u) => u.status === 'active')
         .filter((u) => (clubId ? u.clubId === clubId : true))
 
+      const classifications = await UserRepository.getClassificationsBulk(filtered.map((u) => u.id))
+
       const entries: LeaderboardEntry[] = filtered.map((user) => {
         const cluster = clusterFor(user.id)
         const clusterSize = cluster?.size ?? 0
         const opponentCount = opponentCounts.get(user.id) ?? 0
+        const classification = classifications.get(user.id)
 
-        // No games played yet -> new/unproven, not "isolated"; shown normally
-        // until they've played, at which point BOTH the wider cluster AND
-        // their own personal spread of opponents must clear the bar.
         const isMainCluster = cluster === null || (clusterSize >= MIN_CLUSTER_SIZE && opponentCount >= MIN_DISTINCT_OPPONENTS)
 
         return {
@@ -59,6 +61,8 @@ export function useLeaderboard(clubId: string | null, arm: Arm) {
           opponentCount,
           isMainCluster,
           isEstablished: user[rdField] < RD_ESTABLISHED_THRESHOLD,
+          ageCategory: classification?.ageCategory ?? null,
+          weightClass: classification?.weightClass ?? null,
         }
       })
 

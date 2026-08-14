@@ -29,7 +29,9 @@ export function useAuth() {
       return
     }
     try {
-      const user = await UserRepository.getById(session.user.id)
+      // Own profile: use the full-access RPC, so birthDate/weight/height
+      // are available for editing and self-classification.
+      const user = await UserRepository.getMyFullProfile()
       if (user) {
         setCurrentUser(user)
         setStatus('signed_in')
@@ -83,7 +85,7 @@ export function useAuth() {
       setError(null)
       try {
         const username = session.user.email.split('@')[0]
-        const newUser = await UserRepository.create({
+        await UserRepository.create({
           id: session.user.id,
           name: profile.name,
           username,
@@ -102,7 +104,9 @@ export function useAuth() {
           gender: profile.gender,
           consentDate: new Date().toISOString(),
         })
-        setCurrentUser(newUser)
+        // Re-fetch via the full-access path, so currentUser has birthDate/weight/height
+        const fullUser = await UserRepository.getMyFullProfile()
+        setCurrentUser(fullUser)
         setStatus('signed_in')
       } catch (err) {
         setError((err as Error).message)
@@ -112,6 +116,11 @@ export function useAuth() {
     [session]
   )
 
+  const refreshCurrentUser = useCallback(async () => {
+    const user = await UserRepository.getMyFullProfile()
+    setCurrentUser(user)
+  }, [])
+
   const signOut = useCallback(async () => {
     await AuthService.signOut()
     setSession(null)
@@ -119,5 +128,5 @@ export function useAuth() {
     setStatus('signed_out')
   }, [])
 
-  return { status, session, currentUser, error, signUp, signIn, completeProfile, signOut }
+  return { status, session, currentUser, error, signUp, signIn, completeProfile, signOut, refreshCurrentUser }
 }

@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import type { Club } from '../models/Club'
 import type { User } from '../models/User'
-import { classifyAthlete } from '../services/WeightClassService'
+import { UserRepository } from '../repositories/UserRepository'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 import { useChangePassword } from '../viewmodels/useChangePassword'
 import { useConnectivity } from '../viewmodels/useConnectivity'
@@ -13,6 +13,7 @@ import { usePlayerHistory } from '../viewmodels/usePlayerHistory'
 
 interface PlayerProfileViewProps {
   user: User
+  currentUserId: string
   clubs: Club[]
   isOwnProfile?: boolean
   onSignOut?: () => Promise<void>
@@ -21,12 +22,40 @@ interface PlayerProfileViewProps {
   isAdmin?: boolean
 }
 
-export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewerUserId, showBackButton, isAdmin }: PlayerProfileViewProps) {
+export function PlayerProfileView({ user, currentUserId, clubs, isOwnProfile, onSignOut, viewerUserId, showBackButton, isAdmin }: PlayerProfileViewProps) {
   const router = useRouter()
   const { tournaments, supermatches, clubMatches, loading, error, voidClubMatch } = usePlayerHistory(user.id)
   const clubName = clubs.find((c) => c.id === user.clubId)?.name ?? 'Ukendt klub'
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [voidingId, setVoidingId] = useState<string | null>(null)
+
+  const [classification, setClassification] = useState<{ ageCategory: string; weightClass: string } | null>(null)
+  const [adminFullProfile, setAdminFullProfile] = useState<User | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadExtras() {
+      if (isOwnProfile) return
+      try {
+        if (isAdmin) {
+          const full = await UserRepository.getMemberProfileForAdmin(user.id)
+          if (!cancelled) setAdminFullProfile(full)
+        }
+        const cls = await UserRepository.getClassification(user.id)
+        if (!cancelled) setClassification(cls)
+      } catch {
+        // silently ignore — classification badge just won't show
+      }
+    }
+
+    loadExtras()
+    return () => {
+      cancelled = true
+    }
+  }, [user.id, isOwnProfile, isAdmin])
+
+  const detailedUser = isOwnProfile ? user : adminFullProfile
 
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(user.name)
@@ -41,8 +70,6 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
 
   const showConnectivity = !isOwnProfile && !!viewerUserId
   const { connectedRight, connectedLeft, loading: loadingConnectivity } = useConnectivity(viewerUserId ?? user.id, user.id)
-
-  const classification = user.birthDate && user.gender && user.weight ? classifyAthlete(user.birthDate, user.gender, user.weight) : null
 
   function formatDate(iso: string) {
     if (!iso) return ''
@@ -154,6 +181,13 @@ export function PlayerProfileView({ user, clubs, isOwnProfile, onSignOut, viewer
                   <Text style={styles.privacyLink}>Se privatlivspolitik</Text>
                 </Pressable>
               </>
+            )}
+            {!isOwnProfile && isAdmin && detailedUser && (
+              <Text style={styles.adminHint}>
+                {detailedUser.weight ? `${detailedUser.weight}kg` : ''}
+                {detailedUser.height ? ` · ${detailedUser.height}cm` : ''}
+                {detailedUser.birthDate ? ` · født ${formatDate(detailedUser.birthDate)}` : ''}
+              </Text>
             )}
           </>
         )}
@@ -361,6 +395,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 24, color: '#fff', fontFamily: fonts.display, marginTop: 4 },
   editLink: { color: '#fff', opacity: 0.85, fontSize: 12, textDecorationLine: 'underline', marginTop: 6 },
   privacyLink: { color: '#fff', opacity: 0.6, fontSize: 11, textDecorationLine: 'underline', marginTop: 4 },
+  adminHint: { color: '#fff', opacity: 0.75, fontSize: 11, marginTop: 6 },
   editBox: { width: '100%', marginTop: spacing.sm },
   editLabel: { color: '#fff', opacity: 0.75, fontSize: 10, letterSpacing: 1, marginTop: spacing.sm, marginBottom: 4, fontFamily: fonts.displayMedium },
   editInput: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: radius.sm, padding: 10, color: '#fff', fontSize: 14 },
@@ -396,13 +431,7 @@ const styles = StyleSheet.create({
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   placement: { fontSize: 13, color: colors.inkMuted },
   change: { fontSize: 16, fontFamily: fonts.display },
-  voidButton: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    alignItems: 'center',
-  },
+  voidButton: { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center' },
   voidButtonText: { color: colors.danger, fontSize: 11, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
   summaryText: { fontSize: 12, color: colors.inkMuted },

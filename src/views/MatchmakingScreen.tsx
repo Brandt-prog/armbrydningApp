@@ -3,7 +3,6 @@ import { FlatList, Pressable, StyleSheet, Switch, Text, View } from 'react-nativ
 import type { Arm } from '../models/Arm'
 import type { Club } from '../models/Club'
 import type { User } from '../models/User'
-import { classifyAthlete } from '../services/WeightClassService'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 import { useMatchmaking } from '../viewmodels/useMatchmaking'
 
@@ -16,7 +15,7 @@ const RANGE_OPTIONS = [50, 100, 200]
 
 export function MatchmakingScreen({ currentUser, clubs }: MatchmakingScreenProps) {
   const [arm, setArm] = useState<Arm>('right')
-  const { candidates, loading, ratingRange, setRatingRange, sameWeightClassOnly, setSameWeightClassOnly } =
+  const { candidates, classifications, loading, ratingRange, setRatingRange, sameWeightClassOnly, setSameWeightClassOnly } =
     useMatchmaking(currentUser, arm)
 
   const ratingField = arm === 'left' ? 'ratingLeft' : 'ratingRight'
@@ -30,16 +29,10 @@ export function MatchmakingScreen({ currentUser, clubs }: MatchmakingScreenProps
       </View>
 
       <View style={styles.armTabs}>
-        <Pressable
-          style={[styles.armTab, arm === 'right' && styles.armTabActive]}
-          onPress={() => setArm('right')}
-        >
+        <Pressable style={[styles.armTab, arm === 'right' && styles.armTabActive]} onPress={() => setArm('right')}>
           <Text style={[styles.armTabText, arm === 'right' && styles.armTabTextActive]}>HØJRE</Text>
         </Pressable>
-        <Pressable
-          style={[styles.armTab, arm === 'left' && styles.armTabActive]}
-          onPress={() => setArm('left')}
-        >
+        <Pressable style={[styles.armTab, arm === 'left' && styles.armTabActive]} onPress={() => setArm('left')}>
           <Text style={[styles.armTabText, arm === 'left' && styles.armTabTextActive]}>VENSTRE</Text>
         </Pressable>
       </View>
@@ -48,25 +41,15 @@ export function MatchmakingScreen({ currentUser, clubs }: MatchmakingScreenProps
         <Text style={styles.filterLabel}>RATING-INTERVAL (±)</Text>
         <View style={styles.rangeRow}>
           {RANGE_OPTIONS.map((r) => (
-            <Pressable
-              key={r}
-              style={[styles.rangeChip, ratingRange === r && styles.rangeChipActive]}
-              onPress={() => setRatingRange(r)}
-            >
-              <Text style={[styles.rangeChipText, ratingRange === r && styles.rangeChipTextActive]}>
-                ±{r}
-              </Text>
+            <Pressable key={r} style={[styles.rangeChip, ratingRange === r && styles.rangeChipActive]} onPress={() => setRatingRange(r)}>
+              <Text style={[styles.rangeChipText, ratingRange === r && styles.rangeChipTextActive]}>±{r}</Text>
             </Pressable>
           ))}
         </View>
 
         <View style={styles.switchRow}>
-          <Switch
-            value={sameWeightClassOnly}
-            onValueChange={setSameWeightClassOnly}
-            trackColor={{ true: colors.primary }}
-          />
-          <Text style={styles.switchLabel}>Kun samme vægtklasse (±5 kg)</Text>
+          <Switch value={sameWeightClassOnly} onValueChange={setSameWeightClassOnly} trackColor={{ true: colors.primary }} />
+          <Text style={styles.switchLabel}>Kun samme vægtklasse</Text>
         </View>
       </View>
 
@@ -81,12 +64,9 @@ export function MatchmakingScreen({ currentUser, clubs }: MatchmakingScreenProps
           contentContainerStyle={{ paddingBottom: spacing.xl }}
           renderItem={({ item }) => {
             const clubName = clubs.find((c) => c.id === item.clubId)?.name ?? 'Ukendt klub'
-            const classification =
-              item.birthDate && item.gender && item.weight
-                ? classifyAthlete(item.birthDate, item.gender, item.weight)
-                : null
-            const itemRating = item[ratingField] ?? 1200
-            const diff = itemRating - (myRating ?? 1200)
+            const classification = classifications.get(item.id)
+            const itemRating = item[ratingField] ?? 1500
+            const diff = itemRating - (myRating ?? 1500)
 
             return (
               <View style={styles.card}>
@@ -121,53 +101,21 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.primary, fontSize: 11, letterSpacing: 1.5, fontFamily: fonts.displayMedium },
   title: { fontSize: 18, color: colors.ink, fontFamily: fonts.display, marginTop: 4 },
   armTabs: { flexDirection: 'row', marginBottom: spacing.md, gap: spacing.xs },
-  armTab: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
+  armTab: { flex: 1, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   armTabActive: { backgroundColor: colors.ink, borderColor: colors.ink },
   armTabText: { fontSize: 11, color: colors.inkMuted, fontFamily: fonts.displayMedium },
   armTabTextActive: { color: '#fff' },
   filters: { marginBottom: spacing.md },
-  filterLabel: {
-    fontSize: 11,
-    letterSpacing: 1,
-    color: colors.inkMuted,
-    fontFamily: fonts.displayMedium,
-    marginBottom: spacing.xs,
-  },
+  filterLabel: { fontSize: 11, letterSpacing: 1, color: colors.inkMuted, fontFamily: fonts.displayMedium, marginBottom: spacing.xs },
   rangeRow: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.sm },
-  rangeChip: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
+  rangeChip: { flex: 1, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   rangeChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   rangeChipText: { fontSize: 13, color: colors.inkMuted, fontWeight: '600' },
   rangeChipTextActive: { color: '#fff' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   switchLabel: { color: colors.ink, fontSize: 13 },
   info: { color: colors.inkMuted },
-  card: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
+  card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
   cardLeft: { flex: 1 },
   name: { fontSize: 16, fontWeight: '600', color: colors.ink },
   club: { fontSize: 12, color: colors.inkMuted, marginTop: 2 },

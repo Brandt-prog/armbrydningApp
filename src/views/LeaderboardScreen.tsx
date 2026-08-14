@@ -4,7 +4,6 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { Arm } from '../models/Arm'
 import type { Club } from '../models/Club'
 import type { User } from '../models/User'
-import { classifyAthlete } from '../services/WeightClassService'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 import { useLeaderboard, type LeaderboardEntry } from '../viewmodels/useLeaderboard'
 
@@ -22,10 +21,9 @@ function RankBadge({ rank }: { rank: number }) {
   )
 }
 
-function getClassLabel(user: User): string | null {
-  if (!user.birthDate || !user.gender || !user.weight) return null
-  const { ageCategory, weightClass } = classifyAthlete(user.birthDate, user.gender, user.weight)
-  return `${ageCategory} · ${weightClass}`
+function getClassLabel(entry: LeaderboardEntry): string | null {
+  if (!entry.ageCategory || !entry.weightClass) return null
+  return `${entry.ageCategory} · ${entry.weightClass}`
 }
 
 function reasonFor(entry: LeaderboardEntry): string {
@@ -48,7 +46,7 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
 
   function applyFilters(entries: LeaderboardEntry[]) {
     let filtered = genderFilter === 'all' ? entries : entries.filter((e) => e.user.gender === genderFilter)
-    if (classFilter) filtered = filtered.filter((e) => getClassLabel(e.user) === classFilter)
+    if (classFilter) filtered = filtered.filter((e) => getClassLabel(e) === classFilter)
     return filtered
   }
 
@@ -59,7 +57,7 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
     const set = new Set<string>()
     const all = genderFilter === 'all' ? [...established, ...provisional] : [...established, ...provisional].filter((e) => e.user.gender === genderFilter)
     all.forEach((e) => {
-      const label = getClassLabel(e.user)
+      const label = getClassLabel(e)
       if (label) set.add(label)
     })
     return Array.from(set).sort()
@@ -76,9 +74,9 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
         <View style={styles.rowInfo}>
           <Text style={styles.name}>{entry.user.name}</Text>
           <View style={styles.metaRow}>
-            {getClassLabel(entry.user) && (
+            {getClassLabel(entry) && (
               <View style={styles.classBadge}>
-                <Text style={styles.classBadgeText}>{getClassLabel(entry.user)}</Text>
+                <Text style={styles.classBadgeText}>{getClassLabel(entry)}</Text>
               </View>
             )}
             {showReason && reasonFor(entry) && (
