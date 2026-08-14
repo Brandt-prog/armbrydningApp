@@ -3,14 +3,16 @@ import { supabase } from '../lib/supabaseClient'
 import type { Arm } from '../models/Arm'
 import type { User } from '../models/User'
 import { UserRepository } from '../repositories/UserRepository'
-import { getConnectedComponents } from '../services/ConnectivityService'
+import { getConnectedComponents, getOpponentCounts } from '../services/ConnectivityService'
 
 const RD_ESTABLISHED_THRESHOLD = 200
 const MIN_CLUSTER_SIZE = 5
+const MIN_DISTINCT_OPPONENTS = 4
 
 export interface LeaderboardEntry {
   user: User
   clusterSize: number
+  opponentCount: number
   isMainCluster: boolean
   isEstablished: boolean
 }
@@ -24,9 +26,10 @@ export function useLeaderboard(clubId: string | null, arm: Arm) {
   const loadMembers = useCallback(async () => {
     setError(null)
     try {
-      const [allUsers, components] = await Promise.all([
+      const [allUsers, components, opponentCounts] = await Promise.all([
         UserRepository.getAll(),
         getConnectedComponents(arm),
+        getOpponentCounts(arm),
       ])
 
       function clusterFor(userId: string): Set<string> | null {
@@ -43,10 +46,17 @@ export function useLeaderboard(clubId: string | null, arm: Arm) {
       const entries: LeaderboardEntry[] = filtered.map((user) => {
         const cluster = clusterFor(user.id)
         const clusterSize = cluster?.size ?? 0
-        const isMainCluster = cluster === null || clusterSize >= MIN_CLUSTER_SIZE
+        const opponentCount = opponentCounts.get(user.id) ?? 0
+
+        // No games played yet -> new/unproven, not "isolated"; shown normally
+        // until they've played, at which point BOTH the wider cluster AND
+        // their own personal spread of opponents must clear the bar.
+        const isMainCluster = cluster === null || (clusterSize >= MIN_CLUSTER_SIZE && opponentCount >= MIN_DISTINCT_OPPONENTS)
+
         return {
           user,
           clusterSize,
+          opponentCount,
           isMainCluster,
           isEstablished: user[rdField] < RD_ESTABLISHED_THRESHOLD,
         }

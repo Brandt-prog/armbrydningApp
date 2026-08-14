@@ -29,7 +29,7 @@ function getClassLabel(user: User): string | null {
 }
 
 function reasonFor(entry: LeaderboardEntry): string {
-  if (!entry.isMainCluster) return `Lille gruppe (${entry.clusterSize})`
+  if (!entry.isMainCluster) return `Kun ${entry.opponentCount} modstandere`
   if (!entry.isEstablished) return 'For lidt data endnu'
   return ''
 }

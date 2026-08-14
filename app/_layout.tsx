@@ -11,6 +11,7 @@ import 'react-native-reanimated';
 import { useAuth } from '@/src/viewmodels/useAuth';
 import { CompleteProfileScreen } from '@/src/views/CompleteProfileScreen';
 import { LoginScreen } from '@/src/views/LoginScreen';
+import { PendingApprovalScreen } from '@/src/views/PendingApprovalScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,7 +27,7 @@ export default function RootLayout() {
     ...MaterialCommunityIcons.font,
   });
 
-  const { status, error, signUp, signIn, completeProfile } = useAuth();
+  const { status, error, signUp, signIn, completeProfile, currentUser, signOut } = useAuth();
 
   useEffect(() => {
     if (fontsLoaded && status !== 'loading') {
@@ -51,6 +52,15 @@ export default function RootLayout() {
     return (
       <ThemeProvider value={DefaultTheme}>
         <CompleteProfileScreen onComplete={completeProfile} error={error} />
+        <StatusBar style="dark" />
+      </ThemeProvider>
+    );
+  }
+
+  if (status === 'signed_in' && currentUser?.status === 'pending_approval') {
+    return (
+      <ThemeProvider value={DefaultTheme}>
+        <PendingApprovalScreen onSignOut={signOut} />
         <StatusBar style="dark" />
       </ThemeProvider>
     );

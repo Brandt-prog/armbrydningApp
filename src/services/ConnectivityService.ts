@@ -3,12 +3,29 @@ import { MatchRepository } from '../repositories/MatchRepository'
 import { SupermatchRepository } from '../repositories/SupermatchRepository'
 import { TournamentMatchRepository } from '../repositories/TournamentMatchRepository'
 
-/**
- * Checks whether two athletes are connected through a chain of common
- * opponents (within a given arm) — i.e. whether there is any path between
- * them in the "who has played whom" graph. If not, their ratings sit on
- * the same numeric scale, but are not meaningfully comparable.
- */
+async function buildAdjacency(arm: Arm): Promise<Map<string, Set<string>>> {
+  const [allTournamentMatches, allSupermatches, allClubMatches] = await Promise.all([
+    TournamentMatchRepository.getAllByArm(arm),
+    SupermatchRepository.getAllByArm(arm),
+    MatchRepository.getAllByArm(arm),
+  ])
+
+  const adjacency = new Map<string, Set<string>>()
+
+  function addEdge(a: string, b: string) {
+    if (!adjacency.has(a)) adjacency.set(a, new Set())
+    if (!adjacency.has(b)) adjacency.set(b, new Set())
+    adjacency.get(a)!.add(b)
+    adjacency.get(b)!.add(a)
+  }
+
+  for (const m of allTournamentMatches) addEdge(m.playerAId, m.playerBId)
+  for (const s of allSupermatches) addEdge(s.playerAId, s.playerBId)
+  for (const m of allClubMatches.filter((m) => m.status === 'confirmed')) addEdge(m.playerAId, m.playerBId)
+
+  return adjacency
+}
+
 export async function areUsersConnected(userAId: string, userBId: string, arm: Arm): Promise<boolean> {
   if (userAId === userBId) return true
 
@@ -32,11 +49,6 @@ export async function areUsersConnected(userAId: string, userBId: string, arm: A
   return visited.has(userBId)
 }
 
-/**
- * Finds all connected components in the "who has played whom" graph for
- * a given arm. Each component is a set of user IDs that are all reachable
- * from one another through some chain of matches.
- */
 export async function getConnectedComponents(arm: Arm): Promise<Set<string>[]> {
   const adjacency = await buildAdjacency(arm)
   const visited = new Set<string>()
@@ -67,25 +79,19 @@ export async function getConnectedComponents(arm: Arm): Promise<Set<string>[]> {
   return components
 }
 
-async function buildAdjacency(arm: Arm): Promise<Map<string, Set<string>>> {
-  const [allTournamentMatches, allSupermatches, allClubMatches] = await Promise.all([
-    TournamentMatchRepository.getAllByArm(arm),
-    SupermatchRepository.getAllByArm(arm),
-    MatchRepository.getAllByArm(arm),
-  ])
-
-  const adjacency = new Map<string, Set<string>>()
-
-  function addEdge(a: string, b: string) {
-    if (!adjacency.has(a)) adjacency.set(a, new Set())
-    if (!adjacency.has(b)) adjacency.set(b, new Set())
-    adjacency.get(a)!.add(b)
-    adjacency.get(b)!.add(a)
+/**
+ * Returns, for each user, the number of DISTINCT opponents they have
+ * personally played (their degree in the graph) — not just the size of
+ * the wider connected component they happen to belong to. This closes a
+ * loophole: being transitively connected to a large group via someone
+ * else's single bridge match does not, by itself, mean YOU have proven
+ * broad connectivity.
+ */
+export async function getOpponentCounts(arm: Arm): Promise<Map<string, number>> {
+  const adjacency = await buildAdjacency(arm)
+  const counts = new Map<string, number>()
+  for (const [userId, neighbors] of adjacency.entries()) {
+    counts.set(userId, neighbors.size)
   }
-
-  for (const m of allTournamentMatches) addEdge(m.playerAId, m.playerBId)
-  for (const s of allSupermatches) addEdge(s.playerAId, s.playerBId)
-  for (const m of allClubMatches.filter((m) => m.status === 'confirmed')) addEdge(m.playerAId, m.playerBId)
-
-  return adjacency
+  return counts
 }
