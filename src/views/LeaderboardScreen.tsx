@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import type { Arm } from '../models/Arm'
 import type { Club } from '../models/Club'
 import type { User } from '../models/User'
@@ -95,7 +95,7 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.clubTitle}>{clubName.toUpperCase()}</Text>
 
       <Pressable onPress={() => router.push('/how-ranking-works')} style={styles.howItWorksLink}>
@@ -145,39 +145,31 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
-        <FlatList
-          data={[{ type: 'established' as const }, { type: 'provisional' as const }]}
-          keyExtractor={(item) => item.type}
-          scrollEnabled={false}
-          renderItem={({ item }) => {
-            if (item.type === 'established') {
-              return (
-                <View>
-                  <Text style={styles.sectionTitle}>🏆 RANGLISTE</Text>
-                  {filteredEstablished.length === 0 ? (
-                    <Text style={styles.info}>Ingen etablerede spillere endnu.</Text>
-                  ) : (
-                    filteredEstablished.map((entry, index) => renderRow(entry, index, false))
-                  )}
-                </View>
-              )
-            }
-            if (filteredProvisional.length === 0) return null
-            return (
-              <View style={{ marginTop: spacing.lg }}>
-                <Text style={styles.sectionTitle}>⚠️ IKKE NOK DATA ENDNU</Text>
-                {filteredProvisional.map((entry, index) => renderRow(entry, index, true))}
-              </View>
-            )
-          }}
-        />
+        <>
+          <View>
+            <Text style={styles.sectionTitle}>🏆 RANGLISTE</Text>
+            {filteredEstablished.length === 0 ? (
+              <Text style={styles.info}>Ingen etablerede spillere endnu.</Text>
+            ) : (
+              filteredEstablished.map((entry, index) => renderRow(entry, index, false))
+            )}
+          </View>
+
+          {filteredProvisional.length > 0 && (
+            <View style={{ marginTop: spacing.lg }}>
+              <Text style={styles.sectionTitle}>⚠️ IKKE NOK DATA ENDNU</Text>
+              {filteredProvisional.map((entry, index) => renderRow(entry, index, true))}
+            </View>
+          )}
+        </>
       )}
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.md },
+  container: { flex: 1, backgroundColor: colors.background },
+  contentContainer: { padding: spacing.md, paddingBottom: spacing.xl },
   clubTitle: { fontSize: 12, letterSpacing: 1, color: colors.primary, fontFamily: fonts.displayMedium, marginBottom: spacing.sm },
   howItWorksLink: { marginBottom: spacing.sm },
   howItWorksLinkText: { fontSize: 12, color: colors.primary, textDecorationLine: 'underline' },
