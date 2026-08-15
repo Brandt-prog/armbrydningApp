@@ -9,5 +9,13 @@ interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ currentUser, clubs, onSignOut }: ProfileScreenProps) {
-  return <PlayerProfileView user={currentUser} clubs={clubs} isOwnProfile onSignOut={onSignOut} />
+  return (
+    <PlayerProfileView
+      user={currentUser}
+      currentUserId={currentUser.id}
+      clubs={clubs}
+      isOwnProfile
+      onSignOut={onSignOut}
+    />
+  )
 }
