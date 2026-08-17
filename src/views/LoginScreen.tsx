@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { validateUsername } from '../services/AuthService'
 import { colors, fonts, radius, spacing } from '../theme/theme'
 
 interface LoginScreenProps {
@@ -13,16 +14,36 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   async function handleSubmit() {
+    setLocalError(null)
+
+    if (mode === 'signup') {
+      const usernameError = validateUsername(username)
+      if (usernameError) {
+        setLocalError(usernameError)
+        return
+      }
+      if (password.length < 6) {
+        setLocalError('Kodeord skal være mindst 6 tegn.')
+        return
+      }
+      if (password !== confirmPassword) {
+        setLocalError('Kodeordene matcher ikke.')
+        return
+      }
+    }
+
     setSubmitting(true)
     try {
       if (mode === 'signup') {
-        await onSignUp(username, password)
+        await onSignUp(username.trim(), password)
       } else {
-        await onSignIn(username, password)
+        await onSignIn(username.trim(), password)
       }
     } catch {
       // error is captured via the `error` prop
@@ -30,6 +51,15 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
       setSubmitting(false)
     }
   }
+
+  function switchMode() {
+    setMode(mode === 'signin' ? 'signup' : 'signin')
+    setLocalError(null)
+    setPassword('')
+    setConfirmPassword('')
+  }
+
+  const displayError = localError ?? error
 
   return (
     <KeyboardAwareScrollView
@@ -50,6 +80,9 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
         autoCorrect={false}
         placeholderTextColor={colors.inkMuted}
       />
+      {mode === 'signup' && (
+        <Text style={styles.hint}>Kun bogstaver, tal, - og _. Ingen mellemrum.</Text>
+      )}
 
       <Text style={styles.label}>KODEORD</Text>
       <TextInput
@@ -61,13 +94,27 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
         placeholderTextColor={colors.inkMuted}
       />
 
+      {mode === 'signup' && (
+        <>
+          <Text style={styles.label}>BEKRÆFT KODEORD</Text>
+          <TextInput
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            placeholderTextColor={colors.inkMuted}
+          />
+        </>
+      )}
+
       <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting}>
         <Text style={styles.buttonText}>
           {submitting ? 'VENT...' : mode === 'signin' ? 'LOG IND' : 'OPRET KONTO'}
         </Text>
       </Pressable>
 
-      <Pressable onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
+      <Pressable onPress={switchMode}>
         <Text style={styles.switchText}>
           {mode === 'signin' ? 'Ny her? Opret konto' : 'Har allerede en konto? Log ind'}
         </Text>
@@ -79,7 +126,7 @@ export function LoginScreen({ onSignUp, onSignIn, error }: LoginScreenProps) {
         </Pressable>
       )}
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {displayError && <Text style={styles.error}>{displayError}</Text>}
 
       <Modal visible={showForgotPassword} animationType="slide" onRequestClose={() => setShowForgotPassword(false)}>
         <View style={styles.modalContainer}>
@@ -126,6 +173,7 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     fontFamily: fonts.displayMedium,
   },
+  hint: { fontSize: 11, color: colors.inkMuted, marginTop: 4 },
   input: {
     borderWidth: 1,
     borderColor: colors.border,

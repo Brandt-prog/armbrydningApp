@@ -2,9 +2,20 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 
 const FAKE_EMAIL_DOMAIN = 'armbrydning.local'
+const USERNAME_PATTERN = /^[a-zA-Z0-9_-]+$/
 
 function toFakeEmail(username: string): string {
   return `${username.toLowerCase().trim()}@${FAKE_EMAIL_DOMAIN}`
+}
+
+export function validateUsername(username: string): string | null {
+  const trimmed = username.trim()
+  if (trimmed.length < 3) return 'Brugernavn skal være mindst 3 tegn.'
+  if (trimmed.length > 30) return 'Brugernavn må højst være 30 tegn.'
+  if (!USERNAME_PATTERN.test(trimmed)) {
+    return 'Brugernavn må kun indeholde bogstaver, tal, bindestreg og underscore — ingen mellemrum.'
+  }
+  return null
 }
 
 export const AuthService = {

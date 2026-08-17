@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 import type { User } from '../models/User'
 import { UserRepository } from '../repositories/UserRepository'
 import { AuthService } from '../services/AuthService'
@@ -29,8 +30,6 @@ export function useAuth() {
       return
     }
     try {
-      // Own profile: use the full-access RPC, so birthDate/weight/height
-      // are available for editing and self-classification.
       const user = await UserRepository.getMyFullProfile()
       if (user) {
         setCurrentUser(user)
@@ -58,6 +57,32 @@ export function useAuth() {
 
     return unsubscribe
   }, [loadUserForSession])
+
+  // Live-refresh: whenever the logged-in user's own row changes (e.g. an
+  // admin approves them while they're sitting on the pending screen),
+  // reload their profile automatically — no manual reload needed.
+  useEffect(() => {
+    if (!session?.user?.id) return
+
+    // Unique suffix per effect run avoids a dev-mode double-invoke
+    // (React Strict Mode / Fast Refresh) trying to re-subscribe to a
+    // channel name that's already subscribed.
+    const channelName = `own-user-changes-${session.user.id}-${Math.random().toString(36).slice(2)}`
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users', filter: `id=eq.${session.user.id}` },
+        () => {
+          loadUserForSession(session)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [session, loadUserForSession])
 
   const signUp = useCallback(async (username: string, password: string) => {
     setError(null)
@@ -104,7 +129,6 @@ export function useAuth() {
           gender: profile.gender,
           consentDate: new Date().toISOString(),
         })
-        // Re-fetch via the full-access path, so currentUser has birthDate/weight/height
         const fullUser = await UserRepository.getMyFullProfile()
         setCurrentUser(fullUser)
         setStatus('signed_in')

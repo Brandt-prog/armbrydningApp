@@ -6,6 +6,7 @@ import type { Club } from '../models/Club'
 import type { User } from '../models/User'
 import { UserRepository } from '../repositories/UserRepository'
 import { colors, fonts, radius, spacing } from '../theme/theme'
+import { useAdminPasswordReset } from '../viewmodels/useAdminPasswordReset'
 import { useChangePassword } from '../viewmodels/useChangePassword'
 import { useConnectivity } from '../viewmodels/useConnectivity'
 import { useEditProfile } from '../viewmodels/useEditProfile'
@@ -68,6 +69,10 @@ export function PlayerProfileView({ user, currentUserId, clubs, isOwnProfile, on
   const [confirmPassword, setConfirmPassword] = useState('')
   const { changePassword, submitting: changingPassword, error: passwordError, success: passwordSuccess } = useChangePassword()
 
+  const [showAdminReset, setShowAdminReset] = useState(false)
+  const [adminNewPassword, setAdminNewPassword] = useState('')
+  const { reset: adminReset, submitting: adminResetting, error: adminResetError, success: adminResetSuccess } = useAdminPasswordReset()
+
   const showConnectivity = !isOwnProfile && !!viewerUserId
   const { connectedRight, connectedLeft, loading: loadingConnectivity } = useConnectivity(viewerUserId ?? user.id, user.id)
 
@@ -128,6 +133,15 @@ export function PlayerProfileView({ user, currentUserId, clubs, isOwnProfile, on
     setConfirmPassword('')
   }
 
+  async function handleAdminReset() {
+    await adminReset(user.id, adminNewPassword)
+  }
+
+  function closeAdminResetModal() {
+    setShowAdminReset(false)
+    setAdminNewPassword('')
+  }
+
   return (
     <KeyboardAwareScrollView
       style={styles.container}
@@ -182,12 +196,19 @@ export function PlayerProfileView({ user, currentUserId, clubs, isOwnProfile, on
                 </Pressable>
               </>
             )}
-            {!isOwnProfile && isAdmin && detailedUser && (
-              <Text style={styles.adminHint}>
-                {detailedUser.weight ? `${detailedUser.weight}kg` : ''}
-                {detailedUser.height ? ` · ${detailedUser.height}cm` : ''}
-                {detailedUser.birthDate ? ` · født ${formatDate(detailedUser.birthDate)}` : ''}
-              </Text>
+            {!isOwnProfile && isAdmin && (
+              <>
+                {detailedUser && (
+                  <Text style={styles.adminHint}>
+                    {detailedUser.weight ? `${detailedUser.weight}kg` : ''}
+                    {detailedUser.height ? ` · ${detailedUser.height}cm` : ''}
+                    {detailedUser.birthDate ? ` · født ${formatDate(detailedUser.birthDate)}` : ''}
+                  </Text>
+                )}
+                <Pressable onPress={() => setShowAdminReset(true)}>
+                  <Text style={styles.editLink}>Nulstil kodeord</Text>
+                </Pressable>
+              </>
             )}
           </>
         )}
@@ -382,6 +403,38 @@ export function PlayerProfileView({ user, currentUserId, clubs, isOwnProfile, on
           {passwordSuccess && <Text style={styles.modalSuccess}>Kodeord skiftet!</Text>}
         </View>
       </Modal>
+
+      <Modal visible={showAdminReset} animationType="slide" onRequestClose={closeAdminResetModal}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={closeAdminResetModal} style={styles.modalCloseButton}>
+            <Text style={styles.modalCloseText}>Luk</Text>
+          </Pressable>
+          <Text style={styles.modalTitle}>Nulstil kodeord for {user.name}</Text>
+          <Text style={styles.modalHint}>
+            Sæt et midlertidigt kodeord — bed personen om selv at skifte det bagefter via "Skift kodeord" på egen profil.
+          </Text>
+
+          <Text style={styles.modalLabel}>NYT KODEORD</Text>
+          <TextInput
+            style={styles.modalInput}
+            value={adminNewPassword}
+            onChangeText={setAdminNewPassword}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <Pressable
+            style={[styles.modalButton, adminResetting && styles.modalButtonDisabled]}
+            onPress={handleAdminReset}
+            disabled={adminResetting}
+          >
+            <Text style={styles.modalButtonText}>{adminResetting ? 'NULSTILLER...' : 'NULSTIL KODEORD'}</Text>
+          </Pressable>
+
+          {adminResetError && <Text style={styles.modalError}>{adminResetError}</Text>}
+          {adminResetSuccess && <Text style={styles.modalSuccess}>Kodeord nulstillet!</Text>}
+        </View>
+      </Modal>
     </KeyboardAwareScrollView>
   )
 }
@@ -445,6 +498,7 @@ const styles = StyleSheet.create({
   modalCloseButton: { marginBottom: spacing.lg },
   modalCloseText: { color: colors.primary, fontSize: 15, fontFamily: fonts.displayMedium },
   modalTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.ink, marginBottom: spacing.lg },
+  modalHint: { fontSize: 12, color: colors.inkMuted, marginBottom: spacing.md },
   modalLabel: { fontSize: 11, letterSpacing: 1, marginBottom: spacing.xs, marginTop: spacing.md, color: colors.inkMuted, fontFamily: fonts.displayMedium },
   modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 14, fontSize: 16, color: colors.ink, backgroundColor: colors.surface },
   modalButton: { backgroundColor: colors.primary, borderRadius: radius.md, padding: 16, marginTop: spacing.lg, alignItems: 'center' },

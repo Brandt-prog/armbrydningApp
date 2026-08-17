@@ -28,9 +28,15 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
   const [consent, setConsent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false)
+
+  const missingClub = attemptedSubmit && !clubId
+  const missingName = attemptedSubmit && !name.trim()
+  const missingBirthDate = attemptedSubmit && !birthDate.trim()
 
   async function handleSubmit() {
-    if (!consent || !clubId || !name || !birthDate) return
+    setAttemptedSubmit(true)
+    if (!consent || !clubId || !name.trim() || !birthDate.trim()) return
     setSubmitting(true)
     try {
       await onComplete({
@@ -56,14 +62,21 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
       <Text style={styles.eyebrow}>TRIN 2 AF 2</Text>
       <Text style={styles.title}>Fuldfør din profil</Text>
 
-      <Text style={styles.label}>NAVN</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={colors.inkMuted} />
+      <Text style={styles.label}>NAVN {missingName && <Text style={styles.requiredError}>— påkrævet</Text>}</Text>
+      <TextInput
+        style={[styles.input, missingName && styles.inputError]}
+        value={name}
+        onChangeText={setName}
+        placeholderTextColor={colors.inkMuted}
+      />
 
-      <Text style={styles.label}>KLUB</Text>
+      <Text style={styles.label}>
+        KLUB (PÅKRÆVET) {missingClub && <Text style={styles.requiredError}>— vælg en klub</Text>}
+      </Text>
       {loadingClubs ? (
         <Text style={styles.info}>Indlæser klubber...</Text>
       ) : (
-        <View>
+        <View style={missingClub ? styles.clubListError : undefined}>
           {clubs.map((club) => (
             <Pressable
               key={club.id}
@@ -78,9 +91,11 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
         </View>
       )}
 
-      <Text style={styles.label}>FØDSELSDATO (ÅÅÅÅ-MM-DD)</Text>
+      <Text style={styles.label}>
+        FØDSELSDATO (ÅÅÅÅ-MM-DD) {missingBirthDate && <Text style={styles.requiredError}>— påkrævet</Text>}
+      </Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, missingBirthDate && styles.inputError]}
         value={birthDate}
         onChangeText={setBirthDate}
         placeholder="1995-05-15"
@@ -130,12 +145,11 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
           </Text>
         </Text>
       </View>
+      {attemptedSubmit && !consent && (
+        <Text style={styles.requiredError}>Du skal acceptere for at fortsætte</Text>
+      )}
 
-      <Pressable
-        style={[styles.button, (!consent || !clubId) && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={submitting || !consent || !clubId}
-      >
+      <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting}>
         <Text style={styles.buttonText}>{submitting ? 'OPRETTER...' : 'OPRET PROFIL'}</Text>
       </Pressable>
 
@@ -178,6 +192,7 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     fontFamily: fonts.displayMedium,
   },
+  requiredError: { color: colors.danger, fontFamily: fonts.displayMedium },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -187,6 +202,8 @@ const styles = StyleSheet.create({
     color: colors.ink,
     backgroundColor: colors.surface,
   },
+  inputError: { borderColor: colors.danger, borderWidth: 2 },
+  clubListError: { borderWidth: 2, borderColor: colors.danger, borderRadius: radius.md, padding: spacing.xs },
   info: { color: colors.inkMuted },
   option: {
     borderWidth: 1,
@@ -219,7 +236,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     alignItems: 'center',
   },
-  buttonDisabled: { opacity: 0.4 },
   buttonText: { color: '#fff', fontSize: 15, fontFamily: fonts.displayMedium, letterSpacing: 0.5 },
   error: { color: colors.danger, marginTop: spacing.md, textAlign: 'center' },
   modalCloseButton: { paddingTop: 60, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
