@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 import type { User } from '../models/User'
 import { UserRepository } from '../repositories/UserRepository'
+import { rejectPendingMember } from '../services/AdminService'
 
-/**
- * Fetches members awaiting approval. A club_admin only sees pending
- * members from their own club; a super_admin sees everyone.
- */
 export function usePendingMembers(currentUser: User) {
   const [pendingMembers, setPendingMembers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,13 +31,23 @@ export function usePendingMembers(currentUser: User) {
 
   useEffect(() => {
     loadPendingMembers()
+
+    const channel = supabase
+      .channel(`pending-members-changes-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        loadPendingMembers()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [loadPendingMembers])
 
   const approve = useCallback(async (userId: string) => {
     setError(null)
     try {
       await UserRepository.update(userId, { status: 'active' })
-      setPendingMembers((prev) => prev.filter((u) => u.id !== userId))
     } catch (err) {
       setError((err as Error).message)
       throw err
@@ -49,8 +57,7 @@ export function usePendingMembers(currentUser: User) {
   const reject = useCallback(async (userId: string) => {
     setError(null)
     try {
-      await UserRepository.delete(userId)
-      setPendingMembers((prev) => prev.filter((u) => u.id !== userId))
+      await rejectPendingMember(userId)
     } catch (err) {
       setError((err as Error).message)
       throw err

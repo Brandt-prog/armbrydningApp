@@ -22,3 +22,24 @@ export async function resetMemberPassword(targetUserId: string, newPassword: str
     throw new AdminServiceError(data.error)
   }
 }
+
+export async function rejectPendingMember(targetUserId: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const accessToken = sessionData.session?.access_token
+
+  if (!accessToken) {
+    throw new AdminServiceError('Ingen aktiv session.')
+  }
+
+  const { data, error } = await supabase.functions.invoke('admin-reject-member', {
+    body: { targetUserId },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+
+  if (error) {
+    throw new AdminServiceError(error.message)
+  }
+  if (data?.error) {
+    throw new AdminServiceError(data.error)
+  }
+}
