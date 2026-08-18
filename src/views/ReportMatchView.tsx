@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { PlayerSearchPicker } from '../components/PlayerSearchPicker'
 import type { Arm } from '../models/Arm'
 import type { User } from '../models/User'
 import { colors, fonts, radius, spacing } from '../theme/theme'
@@ -12,21 +13,21 @@ interface ReportMatchViewProps {
 }
 
 export function ReportMatchView({ currentUserId, activeMembers, onReport, error }: ReportMatchViewProps) {
-  const [opponentId, setOpponentId] = useState('')
+  const [opponent, setOpponent] = useState<User | null>(null)
   const [arm, setArm] = useState<Arm>('right')
   const [winner, setWinner] = useState<'me' | 'opponent'>('me')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
   async function handleSubmit() {
-    if (!opponentId) return
+    if (!opponent) return
     setSubmitting(true)
     setSuccess(false)
     try {
-      const winnerId = winner === 'me' ? currentUserId : opponentId
-      await onReport(opponentId, winnerId, arm)
+      const winnerId = winner === 'me' ? currentUserId : opponent.id
+      await onReport(opponent.id, winnerId, arm)
       setSuccess(true)
-      setOpponentId('')
+      setOpponent(null)
     } catch {
       // error surfaced via `error` prop
     } finally {
@@ -38,18 +39,13 @@ export function ReportMatchView({ currentUserId, activeMembers, onReport, error 
     <View style={styles.container}>
       <Text style={styles.label}>RAPPORTÉR EN KAMP</Text>
 
-      <Text style={styles.sublabel}>MODSTANDER</Text>
-      <View style={styles.pickerRow}>
-        {activeMembers.map((m) => (
-          <Pressable
-            key={m.id}
-            style={[styles.chip, opponentId === m.id && styles.chipSelected]}
-            onPress={() => setOpponentId(m.id)}
-          >
-            <Text style={[styles.chipText, opponentId === m.id && { color: '#fff' }]}>{m.name}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <PlayerSearchPicker
+        label="MODSTANDER"
+        users={activeMembers}
+        excludeId={currentUserId}
+        selected={opponent}
+        onSelect={setOpponent}
+      />
 
       <Text style={styles.sublabel}>ARM</Text>
       <View style={styles.armRow}>
@@ -75,9 +71,9 @@ export function ReportMatchView({ currentUserId, activeMembers, onReport, error 
       </View>
 
       <Pressable
-        style={[styles.button, (submitting || !opponentId) && styles.buttonDisabled]}
+        style={[styles.button, (submitting || !opponent) && styles.buttonDisabled]}
         onPress={handleSubmit}
-        disabled={submitting || !opponentId}
+        disabled={submitting || !opponent}
       >
         <Text style={styles.buttonText}>{submitting ? 'RAPPORTERER...' : 'RAPPORTÉR RESULTAT'}</Text>
       </Pressable>
@@ -92,7 +88,6 @@ const styles = StyleSheet.create({
   container: { paddingVertical: spacing.md },
   label: { fontSize: 11, letterSpacing: 1, marginBottom: spacing.sm, color: colors.inkMuted, fontFamily: fonts.displayMedium },
   sublabel: { fontSize: 10, letterSpacing: 1, marginTop: spacing.sm, marginBottom: spacing.xs, color: colors.inkMuted, fontFamily: fonts.displayMedium },
-  pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   armRow: { flexDirection: 'row', gap: spacing.xs },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: colors.surface },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },

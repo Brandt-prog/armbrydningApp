@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import type { Arm } from '../models/Arm'
 import type { User } from '../models/User'
 import { UserRepository } from '../repositories/UserRepository'
-import { getConnectedComponents, getOpponentCounts } from '../services/ConnectivityService'
+import { getLeaderboardGraphData } from '../services/ConnectivityService'
 
 const RD_ESTABLISHED_THRESHOLD = 200
 const MIN_CLUSTER_SIZE = 5
@@ -28,10 +28,9 @@ export function useLeaderboard(clubId: string | null, arm: Arm) {
   const loadMembers = useCallback(async () => {
     setError(null)
     try {
-      const [allUsers, components, opponentCounts] = await Promise.all([
+      const [allUsers, { components, opponentCounts }] = await Promise.all([
         UserRepository.getAll(),
-        getConnectedComponents(arm),
-        getOpponentCounts(arm),
+        getLeaderboardGraphData(arm),
       ])
 
       function clusterFor(userId: string): Set<string> | null {
@@ -82,7 +81,7 @@ export function useLeaderboard(clubId: string | null, arm: Arm) {
     loadMembers()
 
     const channel = supabase
-      .channel('leaderboard-changes')
+      .channel(`leaderboard-changes-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
         loadMembers()
       })
