@@ -8,7 +8,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { DismissKeyboardView } from '@/src/components/DismissKeyboardView';
 import { useAuth } from '@/src/viewmodels/useAuth';
 import { CompleteProfileScreen } from '@/src/views/CompleteProfileScreen';
 import { LoginScreen } from '@/src/views/LoginScreen';
@@ -43,9 +42,7 @@ export default function RootLayout() {
   if (status === 'signed_out') {
     return (
       <ThemeProvider value={DefaultTheme}>
-        <DismissKeyboardView>
-          <LoginScreen onSignUp={signUp} onSignIn={signIn} error={error} />
-        </DismissKeyboardView>
+        <LoginScreen onSignUp={signUp} onSignIn={signIn} error={error} />
         <StatusBar style="dark" />
       </ThemeProvider>
     );
@@ -54,9 +51,7 @@ export default function RootLayout() {
   if (status === 'needs_profile') {
     return (
       <ThemeProvider value={DefaultTheme}>
-        <DismissKeyboardView>
-          <CompleteProfileScreen onComplete={completeProfile} error={error} />
-        </DismissKeyboardView>
+        <CompleteProfileScreen onComplete={completeProfile} error={error} />
         <StatusBar style="dark" />
       </ThemeProvider>
     );
@@ -73,14 +68,12 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={DefaultTheme}>
-      <DismissKeyboardView>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="privacy" options={{ presentation: 'modal', headerShown: false }} />
-          <Stack.Screen name="how-ranking-works" options={{ presentation: 'modal', headerShown: false }} />
-        </Stack>
-      </DismissKeyboardView>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="privacy" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="how-ranking-works" options={{ presentation: 'modal', headerShown: false }} />
+      </Stack>
       <StatusBar style="dark" />
     </ThemeProvider>
   );

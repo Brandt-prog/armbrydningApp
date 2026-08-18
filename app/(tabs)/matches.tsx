@@ -5,6 +5,7 @@ import { AuthGate } from '@/src/views/AuthGate';
 import { PendingMatchesView } from '@/src/views/PendingMatchesView';
 import { ReportMatchView } from '@/src/views/ReportMatchView';
 import { StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 function MatchesContent({ currentUserId }: { currentUserId: string }) {
   const { users } = useActiveUsers();
@@ -12,7 +13,13 @@ function MatchesContent({ currentUserId }: { currentUserId: string }) {
   const activeMembers = users.filter((u) => u.id !== currentUserId);
 
   return (
-    <View style={styles.body}>
+    <KeyboardAwareScrollView
+      style={styles.body}
+      contentContainerStyle={styles.bodyContent}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid
+      extraScrollHeight={20}
+    >
       <PendingMatchesView
         pendingMatches={pendingMatches}
         activeMembers={activeMembers}
@@ -28,7 +35,7 @@ function MatchesContent({ currentUserId }: { currentUserId: string }) {
         onReport={report}
         error={error}
       />
-    </View>
+    </KeyboardAwareScrollView>
   );
 }
 
@@ -47,6 +54,7 @@ export default function MatchesTab() {
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, backgroundColor: colors.background, padding: spacing.md, paddingTop: 60 },
+  body: { flex: 1, backgroundColor: colors.background },
+  bodyContent: { padding: spacing.md, paddingTop: 60 },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
 });
