@@ -40,8 +40,6 @@ export function useLeaderboard(clubId: string | null, arm: Arm) {
       const ratingField = arm === 'left' ? 'ratingLeft' : 'ratingRight'
       const rdField = arm === 'left' ? 'ratingLeftRD' : 'ratingRightRD'
 
-      // Only actual competing members show up on the leaderboard —
-      // administrative-only accounts (roles without 'member') are excluded.
       const filtered = allUsers
         .filter((u) => u.status === 'active')
         .filter((u) => u.roles.includes('member'))
@@ -98,5 +96,5 @@ export function useLeaderboard(clubId: string | null, arm: Arm) {
     }
   }, [loadMembers])
 
-  return { established, provisional, loading, error }
+  return { established, provisional, loading, error, refresh: loadMembers }
 }

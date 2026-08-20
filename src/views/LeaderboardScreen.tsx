@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useFocusEffect, useRouter } from 'expo-router'
+import { useCallback, useMemo, useState } from 'react'
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import type { Arm } from '../models/Arm'
 import type { Club } from '../models/Club'
@@ -38,7 +38,15 @@ export function LeaderboardScreen({ currentUser, clubs }: LeaderboardScreenProps
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all')
   const [classFilter, setClassFilter] = useState<string | null>(null)
 
-  const { established, provisional, loading, error } = useLeaderboard(currentUser.clubId, arm)
+  const { established, provisional, loading, error, refresh } = useLeaderboard(currentUser.clubId, arm)
+
+  // Refresh whenever the user navigates TO this tab — a safety net for
+  // any Realtime update that didn't visibly trigger a re-render.
+  useFocusEffect(
+    useCallback(() => {
+      refresh()
+    }, [refresh])
+  )
 
   const clubName = clubs.find((c) => c.id === currentUser.clubId)?.name ?? 'Din klub'
   const ratingField = arm === 'left' ? 'ratingLeft' : 'ratingRight'
