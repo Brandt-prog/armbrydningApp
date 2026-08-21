@@ -24,5 +24,6 @@ export interface User {
   gender: Gender | null
 
   consentDate: string | null
+  parentalConsentGiven: boolean | null
   createdDate: string
 }

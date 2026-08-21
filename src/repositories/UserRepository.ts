@@ -6,12 +6,8 @@ import type { UserStatus } from '../models/UserStatus'
 
 const TABLE = 'users'
 
-// Columns safe to select directly — birth_date, weight, and height are
-// intentionally excluded (column-level privileges were revoked). Use
-// getMyFullProfile() / getMemberProfileForAdmin() / getClassification()
-// for controlled access to those fields.
 const PUBLIC_COLUMNS =
-  'id, name, username, club_id, roles, status, rating_left, rating_left_rd, rating_left_volatility, rating_right, rating_right_rd, rating_right_volatility, gender, consent_date, created_date'
+  'id, name, username, club_id, roles, status, rating_left, rating_left_rd, rating_left_volatility, rating_right, rating_right_rd, rating_right_volatility, gender, consent_date, parental_consent_given, created_date'
 
 interface UserRow {
   id: string
@@ -31,6 +27,7 @@ interface UserRow {
   birth_date: string | null
   gender: Gender | null
   consent_date: string | null
+  parental_consent_given: boolean | null
   created_date: string
 }
 
@@ -55,6 +52,7 @@ export function mapUserRow(row: UserRow): User {
     birthDate: row.birth_date,
     gender: row.gender,
     consentDate: row.consent_date,
+    parentalConsentGiven: row.parental_consent_given,
     createdDate: row.created_date,
   }
 }
@@ -78,6 +76,7 @@ function mapPublicUserRow(row: PublicUserRow): User {
     birthDate: null,
     gender: row.gender,
     consentDate: row.consent_date,
+    parentalConsentGiven: row.parental_consent_given,
     createdDate: row.created_date,
   }
 }
@@ -101,6 +100,7 @@ function toRow(user: Partial<User>): Partial<UserRow> {
   if (user.birthDate !== undefined) row.birth_date = user.birthDate
   if (user.gender !== undefined) row.gender = user.gender
   if (user.consentDate !== undefined) row.consent_date = user.consentDate
+  if (user.parentalConsentGiven !== undefined) row.parental_consent_given = user.parentalConsentGiven
   if (user.createdDate !== undefined) row.created_date = user.createdDate
   return row
 }
@@ -127,15 +127,6 @@ export const UserRepository = {
     return (data as PublicUserRow[]).map(mapPublicUserRow)
   },
 
-  /**
-   * Fetches the caller's own full profile via the get_my_profile() RPC.
-   * NOTE: when a Postgres function is declared to RETURN a single-row
-   * composite type (e.g. `RETURNS users`) and no matching row exists,
-   * PostgREST can still serialize a JSON object with every field set to
-   * null, rather than a literal JSON null. A plain `if (data)` check
-   * would treat that as a "found" profile, so we explicitly check for a
-   * real id field instead.
-   */
   async getMyFullProfile(): Promise<User | null> {
     const { data, error } = await supabase.rpc('get_my_profile')
     if (error) throw error

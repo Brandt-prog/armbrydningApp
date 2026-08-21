@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { colors, fonts, radius, spacing } from '../theme/theme'
@@ -13,8 +13,22 @@ interface CompleteProfileScreenProps {
     height: number | null
     birthDate: string
     gender: 'male' | 'female'
+    parentalConsentGiven: boolean | null
   }) => Promise<void>
   error: string | null
+}
+
+function calculateAge(birthDateStr: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDateStr)) return null
+  const birthDate = new Date(birthDateStr)
+  if (isNaN(birthDate.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age
 }
 
 export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScreenProps) {
@@ -26,9 +40,13 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState<'male' | 'female'>('male')
   const [consent, setConsent] = useState(false)
+  const [parentalConsent, setParentalConsent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
+
+  const age = useMemo(() => calculateAge(birthDate), [birthDate])
+  const isMinor = age !== null && age < 18
 
   const missingClub = attemptedSubmit && !clubId
   const missingName = attemptedSubmit && !name.trim()
@@ -37,6 +55,8 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
   async function handleSubmit() {
     setAttemptedSubmit(true)
     if (!consent || !clubId || !name.trim() || !birthDate.trim()) return
+    if (isMinor && !parentalConsent) return
+
     setSubmitting(true)
     try {
       await onComplete({
@@ -46,6 +66,7 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
         height: height ? Number(height) : null,
         birthDate,
         gender,
+        parentalConsentGiven: isMinor ? parentalConsent : null,
       })
     } finally {
       setSubmitting(false)
@@ -149,6 +170,24 @@ export function CompleteProfileScreen({ onComplete, error }: CompleteProfileScre
         <Text style={styles.requiredError}>Du skal acceptere for at fortsætte</Text>
       )}
 
+      {isMinor && (
+        <View style={styles.minorBox}>
+          <Text style={styles.minorTitle}>Du er under 18 år</Text>
+          <Text style={styles.minorText}>
+            Da du er under 18, kræver oprettelse af en profil tilladelse fra en forælder eller værge.
+          </Text>
+          <View style={styles.consentRow}>
+            <Switch value={parentalConsent} onValueChange={setParentalConsent} trackColor={{ true: colors.primary }} />
+            <Text style={styles.consentText}>
+              Jeg bekræfter, at min forælder eller værge har givet tilladelse til, at jeg opretter en profil, og at mine oplysninger behandles som beskrevet i privatlivspolitikken.
+            </Text>
+          </View>
+          {attemptedSubmit && !parentalConsent && (
+            <Text style={styles.requiredError}>Forældre-/værgesamtykke er påkrævet for at fortsætte</Text>
+          )}
+        </View>
+      )}
+
       <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting}>
         <Text style={styles.buttonText}>{submitting ? 'OPRETTER...' : 'OPRET PROFIL'}</Text>
       </Pressable>
@@ -229,6 +268,16 @@ const styles = StyleSheet.create({
   consentRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, gap: spacing.sm },
   consentText: { flex: 1, fontSize: 13, color: colors.ink },
   consentLink: { color: colors.primary, textDecorationLine: 'underline', fontWeight: '600' },
+  minorBox: {
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#F0C36D',
+  },
+  minorTitle: { fontSize: 14, fontFamily: fonts.displayMedium, color: colors.ink, marginBottom: 4 },
+  minorText: { fontSize: 13, color: colors.ink, lineHeight: 19 },
   button: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,

@@ -31,22 +31,37 @@ export function AdminApprovalScreen({ currentUser }: AdminApprovalScreenProps) {
           data={pendingMembers}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <View style={styles.rowInfo}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.username}>@{item.username}</Text>
+          renderItem={({ item }) => {
+            const isMinor = item.parentalConsentGiven !== null
+            return (
+              <View style={[styles.row, isMinor && styles.rowMinor]}>
+                <View style={styles.rowInfo}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    {isMinor && (
+                      <View style={styles.minorBadge}>
+                        <Text style={styles.minorBadgeText}>MINDREÅRIG</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.username}>@{item.username}</Text>
+                  {isMinor && (
+                    <Text style={styles.minorHint}>
+                      Har selv bekræftet forældresamtykke — verificér gerne, før du godkender.
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.actions}>
+                  <Pressable style={styles.approveButton} onPress={() => approve(item.id)}>
+                    <Text style={styles.buttonText}>GODKEND</Text>
+                  </Pressable>
+                  <Pressable style={styles.rejectButton} onPress={() => reject(item.id)}>
+                    <Text style={styles.buttonText}>AFVIS</Text>
+                  </Pressable>
+                </View>
               </View>
-              <View style={styles.actions}>
-                <Pressable style={styles.approveButton} onPress={() => approve(item.id)}>
-                  <Text style={styles.buttonText}>GODKEND</Text>
-                </Pressable>
-                <Pressable style={styles.rejectButton} onPress={() => reject(item.id)}>
-                  <Text style={styles.buttonText}>AFVIS</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
+            )
+          }}
         />
       )}
     </View>
@@ -76,9 +91,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  rowMinor: { borderColor: '#F0C36D', borderWidth: 2 },
   rowInfo: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   name: { fontSize: 16, fontWeight: '600', color: colors.ink },
+  minorBadge: { backgroundColor: '#FFF3E0', borderRadius: 10, paddingVertical: 2, paddingHorizontal: 8, borderWidth: 1, borderColor: '#F0C36D' },
+  minorBadgeText: { fontSize: 9, color: '#8A6416', fontFamily: fonts.displayMedium, letterSpacing: 0.3 },
   username: { fontSize: 13, color: colors.inkMuted },
+  minorHint: { fontSize: 11, color: '#8A6416', marginTop: 4, maxWidth: 260 },
   actions: { flexDirection: 'row', gap: spacing.xs },
   approveButton: {
     backgroundColor: colors.success,

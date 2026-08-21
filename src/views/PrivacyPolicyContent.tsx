@@ -20,7 +20,12 @@ export function PrivacyPolicyContent() {
 
       <Text style={styles.heading}>Hvorfor indsamler vi det?</Text>
       <Text style={styles.body}>
-        Navn, brugernavn og klub bruges til at administrere dit medlemskab og vise dig korrekt på ranglisten. Fødselsdato, køn og vægt bruges til at beregne din alders- og vægtklasse. Rating og kamphistorik er selve formålet med appen.
+        Navn, brugernavn og klub bruges til at administrere dit medlemskab og vise dig korrekt på ranglisten. Fødselsdato, køn og vægt bruges til at beregne din alders- og vægtklasse, samt til at afgøre, om forældresamtykke er nødvendigt. Rating og kamphistorik er selve formålet med appen.
+      </Text>
+
+      <Text style={styles.heading}>Mindreårige medlemmer</Text>
+      <Text style={styles.body}>
+        Er du under 18 år, kræver oprettelse af en profil samtykke fra en forælder eller værge. Dette bekræftes ved profil-oprettelse. Forælder eller værge kan til enhver tid kontakte os på kontakt@armbrydning5000.dk for at få indsigt i, rette, eller slette et barns oplysninger.
       </Text>
 
       <Text style={styles.heading}>Hvem har adgang?</Text>

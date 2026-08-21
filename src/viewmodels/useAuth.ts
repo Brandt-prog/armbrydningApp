@@ -15,6 +15,7 @@ interface ProfileInput {
   height: number | null
   birthDate: string
   gender: 'male' | 'female'
+  parentalConsentGiven: boolean | null
 }
 
 export function useAuth() {
@@ -58,15 +59,9 @@ export function useAuth() {
     return unsubscribe
   }, [loadUserForSession])
 
-  // Live-refresh: whenever the logged-in user's own row changes (e.g. an
-  // admin approves them while they're sitting on the pending screen),
-  // reload their profile automatically — no manual reload needed.
   useEffect(() => {
     if (!session?.user?.id) return
 
-    // Unique suffix per effect run avoids a dev-mode double-invoke
-    // (React Strict Mode / Fast Refresh) trying to re-subscribe to a
-    // channel name that's already subscribed.
     const channelName = `own-user-changes-${session.user.id}-${Math.random().toString(36).slice(2)}`
     const channel = supabase
       .channel(channelName)
@@ -128,6 +123,7 @@ export function useAuth() {
           birthDate: profile.birthDate,
           gender: profile.gender,
           consentDate: new Date().toISOString(),
+          parentalConsentGiven: profile.parentalConsentGiven,
         })
         const fullUser = await UserRepository.getMyFullProfile()
         setCurrentUser(fullUser)
